@@ -731,7 +731,7 @@
         <parameter name="aInput"/>
         <parameter name="aElement"/>
         <body><![CDATA[
-          if (!this.mPopupOpen) {
+          if (aInput && !this.mPopupOpen) {
             this.mInput = aInput;
             this.view = aInput.controller.QueryInterface(Components.interfaces.nsITreeView);
             this.invalidate();
@@ -894,7 +894,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <handler event="popupshowing"><![CDATA[
         // If normalMaxRows wasn't already set by the input, then set it here
         // so that we restore the correct number when the popup is hidden.
-        if (this._normalMaxRows < 0)
+        if (this.mInput && this._normalMaxRows < 0)
           this._normalMaxRows = this.mInput.maxRows;
 
         this.mPopupOpen = true;
@@ -912,11 +912,12 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         // Reset the maxRows property to the cached "normal" value, and reset
         // _normalMaxRows so that we can detect whether it was set by the input
         // when the popupshowing handler runs.
-        this.mInput.maxRows = this._normalMaxRows;
+        if (this.mInput)
+            this.mInput.maxRows = this._normalMaxRows;
         this._normalMaxRows = -1;
         // If the list was being navigated and then closed, make sure
         // we fire accessible focus event back to textbox
-        if (isListActive) {
+        if (this.mInput && isListActive) {
           this.mInput.mIgnoreFocus = true;
           this.mInput._focus();
           this.mInput.mIgnoreFocus = false;
@@ -977,7 +978,7 @@ extends="chrome://global/content/bindings/popup.xml#popup">
         <parameter name="aElement"/>
         <body>
           <![CDATA[
-          if (!this.mPopupOpen) {
+          if (aInput && !this.mPopupOpen) {
             this.mInput = aInput;
             // clear any previous selection, see bugs 400671 and 488357
             this.selectedIndex = -1;
@@ -1078,7 +1079,8 @@ extends="chrome://global/content/bindings/popup.xml#popup">
       <method name="_appendCurrentResult">
         <body>
           <![CDATA[
-          var controller = this.mInput.controller;
+          if (this.mInput)
+              var controller = this.mInput.controller;
           var matchCount = this._matchCount;
           var existingItemsCount = this.richlistbox.childNodes.length;
 
