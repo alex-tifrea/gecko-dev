@@ -81,6 +81,15 @@ RemoteFinder.prototype = {
     this._browser.messageManager.sendAsyncMessage("Finder:KeyPress",
                                                   { keyCode: aEvent.keyCode,
                                                     shiftKey: aEvent.shiftKey });
+  },
+
+  requestMatchesCount: function (aSearchString, aMatchLimit, aLinksOnly) {
+    let console = (Cu.import("resource://gre/modules/devtools/Console.jsm", {})).console;
+    console.log("DEBUGGGGGGG");
+    this._browser.messageManager.sendAsyncMessage("Finder:MatchesCount",
+                                                  { searchString: aSearchString,
+                                                    matchLimit: aMatchLimit,
+                                                    linksOnly: aLinksOnly });
   }
 }
 
@@ -104,7 +113,8 @@ RemoteFinderListener.prototype = {
     "Finder:EnableSelection",
     "Finder:RemoveSelection",
     "Finder:FocusContent",
-    "Finder:KeyPress"
+    "Finder:KeyPress",
+    "Finder:MatchesCount"
   ],
 
   onFindResult: function (aData) {
@@ -147,6 +157,10 @@ RemoteFinderListener.prototype = {
 
       case "Finder:KeyPress":
         this._finder.keyPress(data);
+        break;
+
+      case "Finder:MatchesCount":
+        this._finder.requestMatchesCount(data.searchString, data.matchLimit, data.linksOnly);
         break;
     }
   }

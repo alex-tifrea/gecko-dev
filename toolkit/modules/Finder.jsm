@@ -175,6 +175,9 @@ Finder.prototype = {
   },
 
   highlight: function (aHighlight, aWord) {
+    let console = (Cu.import("resource://gre/modules/devtools/Console.jsm", {})).console;
+    console.log("Hello from Firefox code");
+    dump("ceva text de la mine\n");
     let found = this._highlight(aHighlight, aWord, null);
     if (aHighlight) {
       let result = found ? Ci.nsITypeAheadFind.FIND_FOUND
