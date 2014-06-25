@@ -11,6 +11,8 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+let console = (Cu.import("resource://gre/modules/devtools/Console.jsm", {})).console;
+
 function RemoteFinder(browser) {
   this._browser = browser;
   this._listeners = [];
@@ -32,6 +34,9 @@ RemoteFinder.prototype = {
 
   receiveMessage: function (aMessage) {
     this._searchString = aMessage.data.searchString;
+
+    console.log("AM PRIMIT UN MESAJ IN COPIL");
+    console.log(aMessage.data);
 
     for (let l of this._listeners) {
       l.onFindResult(aMessage.data);
@@ -84,8 +89,6 @@ RemoteFinder.prototype = {
   },
 
   requestMatchesCount: function (aSearchString, aMatchLimit, aLinksOnly) {
-    let console = (Cu.import("resource://gre/modules/devtools/Console.jsm", {})).console;
-    console.log("DEBUGGGGGGG");
     this._browser.messageManager.sendAsyncMessage("Finder:MatchesCount",
                                                   { searchString: aSearchString,
                                                     matchLimit: aMatchLimit,
@@ -98,6 +101,8 @@ function RemoteFinderListener(global) {
   this._finder = new Finder(global.docShell);
   this._finder.addResultListener(this);
   this._global = global;
+
+  console.log("CEVA..ORICE");
 
   for (let msg of this.MESSAGES) {
     global.addMessageListener(msg, this);
@@ -118,6 +123,8 @@ RemoteFinderListener.prototype = {
   ],
 
   onFindResult: function (aData) {
+    console.log("Asta e ce trimit catre child");
+    console.log(aData);
     this._global.sendAsyncMessage("Finder:Result", aData);
   },
 
@@ -160,6 +167,11 @@ RemoteFinderListener.prototype = {
         break;
 
       case "Finder:MatchesCount":
+        console.log("Aici afisez ceva");
+        console.log(this._finder);
+        console.log(data.searchString);
+        console.log(data.matchLimit);
+        console.log(data.linksOnly);
         this._finder.requestMatchesCount(data.searchString, data.matchLimit, data.linksOnly);
         break;
     }

@@ -12,6 +12,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Geometry.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
+let console = (Cu.import("resource://gre/modules/devtools/Console.jsm", {})).console;
+
 XPCOMUtils.defineLazyServiceGetter(this, "TextToSubURIService",
                                          "@mozilla.org/intl/texttosuburi;1",
                                          "nsITextToSubURI");
@@ -175,9 +177,6 @@ Finder.prototype = {
   },
 
   highlight: function (aHighlight, aWord) {
-    let console = (Cu.import("resource://gre/modules/devtools/Console.jsm", {})).console;
-    console.log("Hello from Firefox code");
-    dump("ceva text de la mine\n");
     let found = this._highlight(aHighlight, aWord, null);
     if (aHighlight) {
       let result = found ? Ci.nsITypeAheadFind.FIND_FOUND
@@ -279,11 +278,14 @@ Finder.prototype = {
     delete result._currentFound;
     delete result._framesToCount;
 
-    for (let l of this._listeners) {
-      try {
-        l.onMatchesCountResult(result);
-      } catch (ex) {}
-    }
+    console.log("Sunt in Finder");
+    console.log(result);
+    //for (let l of this._listeners) {
+    //  try {
+    //    l.onMatchesCountResult(result);
+    //  } catch (ex) {}
+    //}
+    this._notify(aWord, result, false, false, false);
   },
 
   /**
