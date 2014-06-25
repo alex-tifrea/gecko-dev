@@ -11,14 +11,13 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-let console = (Cu.import("resource://gre/modules/devtools/Console.jsm", {})).console;
-
 function RemoteFinder(browser) {
   this._browser = browser;
   this._listeners = [];
   this._searchString = null;
 
   this._browser.messageManager.addMessageListener("Finder:Result", this);
+  this._browser.messageManager.addMessageListener("Finder:MatchesResult", this);
   this._browser.messageManager.sendAsyncMessage("Finder:Initialize");
 }
 
@@ -35,11 +34,14 @@ RemoteFinder.prototype = {
   receiveMessage: function (aMessage) {
     this._searchString = aMessage.data.searchString;
 
-    console.log("AM PRIMIT UN MESAJ IN COPIL");
-    console.log(aMessage.data);
-
+    // the parent can receive either one the two the types of messages
     for (let l of this._listeners) {
-      l.onFindResult(aMessage.data);
+        if (aMessage.name == "Finder:Result") {
+          l.onFindResult(aMessage.data);
+        }
+        if (aMessage.name == "Finder:MatchesResult") {
+          l.onMatchesCountResult(aMessage.data);
+        }
     }
   },
 
@@ -102,8 +104,6 @@ function RemoteFinderListener(global) {
   this._finder.addResultListener(this);
   this._global = global;
 
-  console.log("CEVA..ORICE");
-
   for (let msg of this.MESSAGES) {
     global.addMessageListener(msg, this);
   }
@@ -123,9 +123,14 @@ RemoteFinderListener.prototype = {
   ],
 
   onFindResult: function (aData) {
-    console.log("Asta e ce trimit catre child");
-    console.log(aData);
+      // the parent can receive either one the two the types of messages
     this._global.sendAsyncMessage("Finder:Result", aData);
+  },
+
+  // receives messages with results of requestMatchesCount
+  // and passes them forward to the parent
+  onMatchesCountResult: function (aData) {
+    this._global.sendAsyncMessage("Finder:MatchesResult", aData);
   },
 
   //XXXmikedeboer-20131016: implement |shouldFocusContent| here to mitigate
@@ -167,11 +172,6 @@ RemoteFinderListener.prototype = {
         break;
 
       case "Finder:MatchesCount":
-        console.log("Aici afisez ceva");
-        console.log(this._finder);
-        console.log(data.searchString);
-        console.log(data.matchLimit);
-        console.log(data.linksOnly);
         this._finder.requestMatchesCount(data.searchString, data.matchLimit, data.linksOnly);
         break;
     }

@@ -12,8 +12,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Geometry.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-let console = (Cu.import("resource://gre/modules/devtools/Console.jsm", {})).console;
-
 XPCOMUtils.defineLazyServiceGetter(this, "TextToSubURIService",
                                          "@mozilla.org/intl/texttosuburi;1",
                                          "nsITextToSubURI");
@@ -278,14 +276,11 @@ Finder.prototype = {
     delete result._currentFound;
     delete result._framesToCount;
 
-    console.log("Sunt in Finder");
-    console.log(result);
-    //for (let l of this._listeners) {
-    //  try {
-    //    l.onMatchesCountResult(result);
-    //  } catch (ex) {}
-    //}
-    this._notify(aWord, result, false, false, false);
+    for (let l of this._listeners) {
+      try {
+        l.onMatchesCountResult(result);
+      } catch (ex) {}
+    }
   },
 
   /**
