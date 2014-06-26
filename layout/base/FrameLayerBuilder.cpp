@@ -3509,7 +3509,8 @@ PredictScaleForContent(nsIFrame* aFrame, nsIFrame* aAncestorWithScale,
 gfxSize
 FrameLayerBuilder::GetThebesLayerScaleForFrame(nsIFrame* aFrame)
 {
-  nsIFrame* last;
+  MOZ_ASSERT(aFrame, "need a frame");
+  nsIFrame* last = nullptr;
   for (nsIFrame* f = aFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
     last = f;
 
@@ -3521,7 +3522,7 @@ FrameLayerBuilder::GetThebesLayerScaleForFrame(nsIFrame* aFrame)
     }
 
     nsTArray<DisplayItemData*> *array =
-      reinterpret_cast<nsTArray<DisplayItemData*>*>(aFrame->Properties().Get(LayerManagerDataProperty()));
+      reinterpret_cast<nsTArray<DisplayItemData*>*>(f->Properties().Get(LayerManagerDataProperty()));
     if (!array) {
       continue;
     }
