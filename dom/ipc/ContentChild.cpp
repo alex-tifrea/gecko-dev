@@ -150,6 +150,8 @@
 #include "mozilla/dom/time/DateCacheCleaner.h"
 #include "mozilla/net/NeckoMessageUtils.h"
 
+#include "mozilla/widget/xpwidgets/PuppetBidiKeyboard.h"
+
 using namespace base;
 using namespace mozilla;
 using namespace mozilla::docshell;
@@ -935,13 +937,21 @@ ContentChild::RecvSpeakerManagerNotify()
     return false;
 }
 
-bool ContentChild::RecvBidiKeyboardNotify(const bool& isLangRTL)
+bool ContentChild::RecvBidiKeyboardNotify(const bool& aIsLangRTL)
 {
     // bidi is always of type PuppetBidiKeyboard* (because in the child, the only
     // possible implementation of nsIBidiKeyboard is PuppetBidiKeyboard).
-    nsIBidiKeyboard* bidi = nsContentUtils::GetBidiKeyboard();
+    PuppetBidiKeyboard* bidi = (PuppetBidiKeyboard*) nsContentUtils::GetBidiKeyboard();
     if (bidi) {
-        (PuppetBidiKeyboard *bidi)->SetIsLangRTL(isLangRTL);
+        //PRUint8 setLangValue;
+        //// An odd value is equivalent with a RTL keyboard.
+        //// An even value is equivalent with a LTR keyboard.
+        //if (aIsLangRTL)
+        //    setLangValue = 1;
+        //else
+        //    setLangValue = 2;
+        //bidi->setLangFromBidiLevel(setLangValue);
+        bidi->SetIsLangRTL(aIsLangRTL);
         return true;
     }
     return false;
