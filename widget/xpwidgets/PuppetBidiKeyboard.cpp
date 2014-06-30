@@ -5,10 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "PuppetBidiKeyboard.h"
-#include "nsCocoaUtils.h"
-
-// This must be the last include:
-#include "nsObjCExceptions.h"
 
 using namespace mozilla::widget;
 
@@ -34,10 +30,9 @@ NS_IMETHODIMP PuppetBidiKeyboard::IsLangRTL(bool *aIsRTL)
   return NS_OK;
 }
 
-NS_IMETHODIMP PuppetBidiKeyboard::SetIsLangRTL(const bool aIsLangRTL)
+void PuppetBidiKeyboard::SetIsLangRTL(bool aIsLangRTL)
 {
-  mIsLangRTL = mIsLangRTL;
-  return NS_OK;
+  mIsLangRTL = aIsLangRTL;
 }
 
 NS_IMETHODIMP PuppetBidiKeyboard::GetHaveBidiKeyboards(bool* aResult)

@@ -9,6 +9,7 @@ EXPORTS += [
     'GfxDriverInfo.h',
     'GfxInfoBase.h',
     'GfxInfoCollector.h',
+    'PuppetBidiKeyboard.h',
 ]
 
 UNIFIED_SOURCES += [

@@ -151,7 +151,7 @@
 #include "mozilla/dom/time/DateCacheCleaner.h"
 #include "mozilla/net/NeckoMessageUtils.h"
 
-#include "mozilla/widget/xpwidgets/PuppetBidiKeyboard.h"
+#include "PuppetBidiKeyboard.h"
 
 using namespace base;
 using namespace mozilla;
@@ -955,8 +955,7 @@ bool ContentChild::RecvBidiKeyboardNotify(const bool& aIsLangRTL)
         bidi->SetIsLangRTL(aIsLangRTL);
         return true;
     }
-    return false;
-    //TODO: what should it return?
+    return true;
 }
 
 static CancelableTask* sFirstIdleTask;

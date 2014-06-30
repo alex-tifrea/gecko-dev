@@ -103,7 +103,6 @@ NS_DEFINE_NAMED_CID(NS_CLIPBOARD_CID);
 NS_DEFINE_NAMED_CID(NS_CLIPBOARDHELPER_CID);
 NS_DEFINE_NAMED_CID(NS_DRAGSERVICE_CID);
 NS_DEFINE_NAMED_CID(NS_BIDIKEYBOARD_CID);
-//TODO: a CID has to be asigned to PUPPETBIDIKEYBOARD_CID
 NS_DEFINE_NAMED_CID(PUPPETBIDIKEYBOARD_CID);
 NS_DEFINE_NAMED_CID(NS_THEMERENDERER_CID);
 NS_DEFINE_NAMED_CID(NS_SCREENMANAGER_CID);
@@ -139,7 +138,6 @@ static const mozilla::Module::CIDEntry kWidgetCIDs[] = {
     mozilla::Module::MAIN_PROCESS_ONLY },
   { &kNS_BIDIKEYBOARD_CID, false, NULL, nsBidiKeyboardConstructor,
     mozilla::Module::MAIN_PROCESS_ONLY },
-  //TODO: is this correct:
   { &kPUPPETBIDIKEYBOARD_CID, false, NULL, PuppetBidiKeyboardConstructor,
     mozilla::Module::CONTENT_PROCESS_ONLY },
   { &kNS_THEMERENDERER_CID, false, NULL, nsNativeThemeCocoaConstructor },
@@ -181,7 +179,6 @@ static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
     mozilla::Module::MAIN_PROCESS_ONLY },
   { "@mozilla.org/widget/bidikeyboard;1", &kNS_BIDIKEYBOARD_CID,
     mozilla::Module::MAIN_PROCESS_ONLY },
-  //TODO: is this right: 
   { "@mozilla.org/widget/bidikeyboard;1", &kPUPPETBIDIKEYBOARD_CID,
     mozilla::Module::CONTENT_PROCESS_ONLY },
   { "@mozilla.org/chrome/chrome-native-theme;1", &kNS_THEMERENDERER_CID },

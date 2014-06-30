@@ -20,7 +20,7 @@ public:
   PuppetBidiKeyboard();
   virtual ~PuppetBidiKeyboard();
 
-  NS_IMETHOD SetIsLangRTL(const bool& aIsLangRTL);
+  void SetIsLangRTL(bool aIsLangRTL);
 };
 
 #endif // PuppetBidiKeyboard_h_
