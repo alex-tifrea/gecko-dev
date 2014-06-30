@@ -944,16 +944,7 @@ bool ContentChild::RecvBidiKeyboardNotify(const bool& aIsLangRTL)
     // possible implementation of nsIBidiKeyboard is PuppetBidiKeyboard).
     PuppetBidiKeyboard* bidi = (PuppetBidiKeyboard*) nsContentUtils::GetBidiKeyboard();
     if (bidi) {
-        //PRUint8 setLangValue;
-        //// An odd value is equivalent with a RTL keyboard.
-        //// An even value is equivalent with a LTR keyboard.
-        //if (aIsLangRTL)
-        //    setLangValue = 1;
-        //else
-        //    setLangValue = 2;
-        //bidi->setLangFromBidiLevel(setLangValue);
         bidi->SetIsLangRTL(aIsLangRTL);
-        return true;
     }
     return true;
 }
