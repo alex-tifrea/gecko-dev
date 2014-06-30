@@ -36,6 +36,7 @@ UNIFIED_SOURCES += [
     'nsPrintSettingsImpl.cpp',
     'nsTransferable.cpp',
     'nsXPLookAndFeel.cpp',
+    'PuppetBidiKeyboard.cpp',
     'PuppetWidget.cpp',
     'WidgetUtils.cpp',
 ]

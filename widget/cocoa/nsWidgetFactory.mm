@@ -67,6 +67,9 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsNativeMenuServiceX)
 #include "nsBidiKeyboard.h"
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsBidiKeyboard)
 
+#include "PuppetBidiKeyboard.h"
+NS_GENERIC_FACTORY_CONSTRUCTOR(PuppetBidiKeyboard)
+
 #include "nsNativeThemeCocoa.h"
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsNativeThemeCocoa)
 
@@ -100,6 +103,8 @@ NS_DEFINE_NAMED_CID(NS_CLIPBOARD_CID);
 NS_DEFINE_NAMED_CID(NS_CLIPBOARDHELPER_CID);
 NS_DEFINE_NAMED_CID(NS_DRAGSERVICE_CID);
 NS_DEFINE_NAMED_CID(NS_BIDIKEYBOARD_CID);
+//TODO: a CID has to be asigned to PUPPETBIDIKEYBOARD_CID
+NS_DEFINE_NAMED_CID(PUPPETBIDIKEYBOARD_CID);
 NS_DEFINE_NAMED_CID(NS_THEMERENDERER_CID);
 NS_DEFINE_NAMED_CID(NS_SCREENMANAGER_CID);
 NS_DEFINE_NAMED_CID(NS_DEVICE_CONTEXT_SPEC_CID);
@@ -132,7 +137,11 @@ static const mozilla::Module::CIDEntry kWidgetCIDs[] = {
   { &kNS_CLIPBOARDHELPER_CID, false, NULL, nsClipboardHelperConstructor },
   { &kNS_DRAGSERVICE_CID, false, NULL, nsDragServiceConstructor,
     mozilla::Module::MAIN_PROCESS_ONLY },
-  { &kNS_BIDIKEYBOARD_CID, false, NULL, nsBidiKeyboardConstructor },
+  { &kNS_BIDIKEYBOARD_CID, false, NULL, nsBidiKeyboardConstructor,
+    mozilla::Module::MAIN_PROCESS_ONLY },
+  //TODO: is this correct:
+  { &kPUPPETBIDIKEYBOARD_CID, false, NULL, PuppetBidiKeyboardConstructor,
+    mozilla::Module::CONTENT_PROCESS_ONLY },
   { &kNS_THEMERENDERER_CID, false, NULL, nsNativeThemeCocoaConstructor },
   { &kNS_SCREENMANAGER_CID, false, NULL, nsScreenManagerCocoaConstructor },
   { &kNS_DEVICE_CONTEXT_SPEC_CID, false, NULL, nsDeviceContextSpecXConstructor,
@@ -170,7 +179,11 @@ static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
   { "@mozilla.org/widget/clipboardhelper;1", &kNS_CLIPBOARDHELPER_CID },
   { "@mozilla.org/widget/dragservice;1", &kNS_DRAGSERVICE_CID,
     mozilla::Module::MAIN_PROCESS_ONLY },
-  { "@mozilla.org/widget/bidikeyboard;1", &kNS_BIDIKEYBOARD_CID },
+  { "@mozilla.org/widget/bidikeyboard;1", &kNS_BIDIKEYBOARD_CID,
+    mozilla::Module::MAIN_PROCESS_ONLY },
+  //TODO: is this right: 
+  { "@mozilla.org/widget/bidikeyboard;1", &kPUPPETBIDIKEYBOARD_CID,
+    mozilla::Module::CONTENT_PROCESS_ONLY },
   { "@mozilla.org/chrome/chrome-native-theme;1", &kNS_THEMERENDERER_CID },
   { "@mozilla.org/gfx/screenmanager;1", &kNS_SCREENMANAGER_CID },
   { "@mozilla.org/gfx/devicecontextspec;1", &kNS_DEVICE_CONTEXT_SPEC_CID,

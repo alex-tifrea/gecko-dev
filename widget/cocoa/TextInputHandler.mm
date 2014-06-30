@@ -24,6 +24,8 @@
 #include "nsCocoaUtils.h"
 #include "WidgetUtils.h"
 #include "nsPrintfCString.h"
+#include "mozilla/unused.h"
+#include "mozilla/dom/ContentParent.h"
 
 #ifdef __LP64__
 #include "ComplexTextInputPanel.h"
@@ -2318,6 +2320,15 @@ IMEInputHandler::OnCurrentTextInputSourceChange(CFNotificationCenterRef aCenter,
     sLastTIS = newTIS;
   }
 #endif // #ifdef PR_LOGGING
+
+  /**
+   * When a change is made, all the children are notified
+   */
+  nsTArray<dom::ContentParent*> children;
+  dom::ContentParent::GetAll(children);
+  for (uint32_t i = 0; i < children.Length(); i++) {
+    unused << children[i]->SendBidiKeyboardNotify(tis.IsForRTLLanguage());
+  }
 }
 
 // static

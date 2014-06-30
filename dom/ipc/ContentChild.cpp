@@ -71,7 +71,6 @@
 #include "nsLayoutStylesheetCache.h"
 #include "nsIJSRuntimeService.h"
 #include "nsThreadManager.h"
-#include "nsAnonymousTemporaryFile.h"
 
 #include "IHistory.h"
 #include "nsNetUtil.h"
@@ -934,6 +933,19 @@ ContentChild::RecvSpeakerManagerNotify()
     return true;
 #endif
     return false;
+}
+
+bool ContentChild::RecvBidiKeyboardNotify(const bool& isLangRTL)
+{
+    // bidi is always of type PuppetBidiKeyboard* (because in the child, the only
+    // possible implementation of nsIBidiKeyboard is PuppetBidiKeyboard).
+    nsIBidiKeyboard* bidi = nsContentUtils::GetBidiKeyboard();
+    if (bidi) {
+        (PuppetBidiKeyboard *bidi)->SetIsLangRTL(isLangRTL);
+        return true;
+    }
+    return false;
+    //TODO: what should it return?
 }
 
 static CancelableTask* sFirstIdleTask;
