@@ -9,6 +9,9 @@ EXPORTS += [
     'GfxDriverInfo.h',
     'GfxInfoBase.h',
     'GfxInfoCollector.h',
+]
+
+EXPORTS.mozilla.widget += [
     'PuppetBidiKeyboard.h',
 ]
 

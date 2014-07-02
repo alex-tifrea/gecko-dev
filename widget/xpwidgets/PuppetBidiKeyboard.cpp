@@ -1,5 +1,6 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- *
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* vim: set sw=4 ts=8 et tw=80 : */
+/*
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,31 +13,34 @@ NS_IMPL_ISUPPORTS(PuppetBidiKeyboard, nsIBidiKeyboard)
 
 PuppetBidiKeyboard::PuppetBidiKeyboard() : nsIBidiKeyboard()
 {
-  Reset();
 }
 
 PuppetBidiKeyboard::~PuppetBidiKeyboard()
 {
 }
 
-NS_IMETHODIMP PuppetBidiKeyboard::Reset()
+NS_IMETHODIMP
+PuppetBidiKeyboard::Reset()
 {
-  return NS_OK;
+    return NS_OK;
 }
 
-NS_IMETHODIMP PuppetBidiKeyboard::IsLangRTL(bool *aIsRTL)
+NS_IMETHODIMP
+PuppetBidiKeyboard::IsLangRTL(bool *aIsRTL)
 {
-  *aIsRTL = mIsLangRTL;
-  return NS_OK;
+    *aIsRTL = mIsLangRTL;
+    return NS_OK;
 }
 
-void PuppetBidiKeyboard::SetIsLangRTL(bool aIsLangRTL)
+void
+PuppetBidiKeyboard::SetIsLangRTL(bool aIsLangRTL)
 {
-  mIsLangRTL = aIsLangRTL;
+    mIsLangRTL = aIsLangRTL;
 }
 
-NS_IMETHODIMP PuppetBidiKeyboard::GetHaveBidiKeyboards(bool* aResult)
+NS_IMETHODIMP
+PuppetBidiKeyboard::GetHaveBidiKeyboards(bool* aResult)
 {
-  // not implemented yet
-  return NS_ERROR_NOT_IMPLEMENTED;
+    // not implemented yet
+    return NS_ERROR_NOT_IMPLEMENTED;
 }

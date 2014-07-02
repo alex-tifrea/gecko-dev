@@ -10,18 +10,25 @@
 #include "nsClipboardProxy.h"
 #include "nsColorPickerProxy.h"
 #include "nsFilePickerProxy.h"
+#include "nsBidiKeyboard.h"
+#include "PuppetBidiKeyboard.h"
 
 using namespace mozilla;
+using namespace mozilla::widget;
 
 #ifndef MOZ_B2G
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsClipboardProxy)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsColorPickerProxy)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsFilePickerProxy)
+NS_GENERIC_FACTORY_CONSTRUCTOR(nsBidiKeyboard)
+NS_GENERIC_FACTORY_CONSTRUCTOR(PuppetBidiKeyboard)
 
 NS_DEFINE_NAMED_CID(NS_CLIPBOARD_CID);
 NS_DEFINE_NAMED_CID(NS_COLORPICKER_CID);
 NS_DEFINE_NAMED_CID(NS_FILEPICKER_CID);
+NS_DEFINE_NAMED_CID(NS_BIDIKEYBOARD_CID);
+NS_DEFINE_NAMED_CID(PUPPETBIDIKEYBOARD_CID);
 
 static const mozilla::Module::CIDEntry kWidgetCIDs[] = {
     { &kNS_CLIPBOARD_CID, false, nullptr, nsClipboardProxyConstructor,
@@ -30,6 +37,10 @@ static const mozilla::Module::CIDEntry kWidgetCIDs[] = {
       Module::CONTENT_PROCESS_ONLY },
     { &kNS_FILEPICKER_CID, false, nullptr, nsFilePickerProxyConstructor,
       Module::CONTENT_PROCESS_ONLY },
+    { &kNS_BIDIKEYBOARD_CID, false, NULL, nsBidiKeyboardConstructor,
+      mozilla::Module::MAIN_PROCESS_ONLY },
+    { &kPUPPETBIDIKEYBOARD_CID, false, NULL, PuppetBidiKeyboardConstructor,
+      mozilla::Module::CONTENT_PROCESS_ONLY },
     { nullptr }
 };
 
@@ -37,6 +48,8 @@ static const mozilla::Module::ContractIDEntry kWidgetContracts[] = {
     { "@mozilla.org/widget/clipboard;1", &kNS_CLIPBOARD_CID, Module::CONTENT_PROCESS_ONLY },
     { "@mozilla.org/colorpicker;1", &kNS_COLORPICKER_CID, Module::CONTENT_PROCESS_ONLY },
     { "@mozilla.org/filepicker;1", &kNS_FILEPICKER_CID, Module::CONTENT_PROCESS_ONLY },
+    { "@mozilla.org/widget/bidikeyboard;1", &kNS_BIDIKEYBOARD_CID, Module::MAIN_PROCESS_ONLY },
+    { "@mozilla.org/widget/bidikeyboard;1", &kPUPPETBIDIKEYBOARD_CID, Module::CONTENT_PROCESS_ONLY },
     { nullptr }
 };
 

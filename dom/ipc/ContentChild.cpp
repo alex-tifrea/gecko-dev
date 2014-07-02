@@ -167,6 +167,7 @@ using namespace mozilla::ipc;
 using namespace mozilla::layers;
 using namespace mozilla::net;
 using namespace mozilla::jsipc;
+using namespace mozilla::widget;
 #if defined(MOZ_WIDGET_GONK)
 using namespace mozilla::system;
 #endif
@@ -938,11 +939,12 @@ ContentChild::RecvSpeakerManagerNotify()
     return false;
 }
 
-bool ContentChild::RecvBidiKeyboardNotify(const bool& aIsLangRTL)
+bool
+ContentChild::RecvBidiKeyboardNotify(const bool& aIsLangRTL)
 {
     // bidi is always of type PuppetBidiKeyboard* (because in the child, the only
     // possible implementation of nsIBidiKeyboard is PuppetBidiKeyboard).
-    PuppetBidiKeyboard* bidi = (PuppetBidiKeyboard*) nsContentUtils::GetBidiKeyboard();
+    PuppetBidiKeyboard* bidi = static_cast<PuppetBidiKeyboard*>(nsContentUtils::GetBidiKeyboard());
     if (bidi) {
         bidi->SetIsLangRTL(aIsLangRTL);
     }
