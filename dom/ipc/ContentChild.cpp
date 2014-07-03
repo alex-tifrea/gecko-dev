@@ -676,8 +676,8 @@ ContentChild::InitXPCOM()
     if (NS_FAILED(svc->RegisterListener(mConsoleListener)))
         NS_WARNING("Couldn't register console listener for child process");
 
-    bool isOffline;
-    SendGetXPCOMProcessAttributes(&isOffline);
+    bool isOffline, isLangRTL;
+    SendGetXPCOMProcessAttributes(&isOffline, &isLangRTL);
     RecvSetOffline(isOffline);
 
     DebugOnly<FileUpdateDispatcher*> observer = FileUpdateDispatcher::GetSingleton();

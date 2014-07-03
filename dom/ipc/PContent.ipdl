@@ -458,7 +458,7 @@ parent:
     sync GetProcessAttributes()
         returns (uint64_t id, bool isForApp, bool isForBrowser);
     sync GetXPCOMProcessAttributes()
-        returns (bool isOffline);
+        returns (bool isOffline, bool isLangRTL);
 
     sync CreateChildProcess(IPCTabContext context,
                             ProcessPriority priority)

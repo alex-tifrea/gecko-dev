@@ -2232,6 +2232,7 @@ TextInputHandler::DoCommandBySelector(const char* aSelector)
  ******************************************************************************/
 
 bool IMEInputHandler::sStaticMembersInitialized = false;
+bool IMEInputHandler::sCachedIsForRTLLangage = false;
 CFStringRef IMEInputHandler::sLatestIMEOpenedModeInputSourceID = nullptr;
 IMEInputHandler* IMEInputHandler::sFocusedIMEHandler = nullptr;
 
@@ -2322,12 +2323,16 @@ IMEInputHandler::OnCurrentTextInputSourceChange(CFNotificationCenterRef aCenter,
 #endif // #ifdef PR_LOGGING
 
   /**
-   * When a change is made, all the children are notified
+   * When the direction is changed, all the children are notified.
+   * No need to treat the initial case separately because 
    */
-  nsTArray<dom::ContentParent*> children;
-  dom::ContentParent::GetAll(children);
-  for (uint32_t i = 0; i < children.Length(); i++) {
-    unused << children[i]->SendBidiKeyboardNotify(tis.IsForRTLLanguage());
+  if (sCachedIsForRTLLangage != tis.IsForRTLLanguage()) {
+    nsTArray<dom::ContentParent*> children;
+    dom::ContentParent::GetAll(children);
+    for (uint32_t i = 0; i < children.Length(); i++) {
+      unused << children[i]->SendBidiKeyboardNotify(tis.IsForRTLLanguage());
+    }
+    sCachedIsForRTLLangage = tis.IsForRTLLanguage();
   }
 }
 
