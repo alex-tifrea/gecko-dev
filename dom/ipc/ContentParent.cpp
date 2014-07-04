@@ -2570,11 +2570,11 @@ ContentParent::RecvGetXPCOMProcessAttributes(bool* aIsOffline, bool* aIsLangRTL)
     DebugOnly<nsresult> rv = io->GetOffline(aIsOffline);
     NS_ASSERTION(NS_SUCCEEDED(rv), "Failed getting offline?");
 
-    nsBidiKeyboard* bidi = static_cast<nsBidiKeyboard*>(nsContentUtils::GetBidiKeyboard());
+    nsIBidiKeyboard* bidi = nsContentUtils::GetBidiKeyboard();
 
     *aIsLangRTL = false;
     if (bidi) {
-        bidi->IsLangRTL(aIsLangRTL );
+        bidi->IsLangRTL(aIsLangRTL);
     }
 
     return true;

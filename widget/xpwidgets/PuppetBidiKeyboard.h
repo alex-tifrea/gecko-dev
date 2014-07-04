@@ -13,18 +13,19 @@
 namespace mozilla {
 namespace widget {
 
-class PuppetBidiKeyboard : public nsIBidiKeyboard
+class PuppetBidiKeyboard MOZ_FINAL : public nsIBidiKeyboard
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIBIDIKEYBOARD
 
   PuppetBidiKeyboard();
-  virtual ~PuppetBidiKeyboard();
 
   void SetIsLangRTL(bool aIsLangRTL);
 
 private:
+  ~PuppetBidiKeyboard();
+
   bool mIsLangRTL;
 };
 

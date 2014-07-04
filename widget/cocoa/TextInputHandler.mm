@@ -2324,7 +2324,8 @@ IMEInputHandler::OnCurrentTextInputSourceChange(CFNotificationCenterRef aCenter,
 
   /**
    * When the direction is changed, all the children are notified.
-   * No need to treat the initial case separately because 
+   * No need to treat the initial case separately because it is covered
+   * by the general case (sCachedIsForRTLLangage is initially false)
    */
   if (sCachedIsForRTLLangage != tis.IsForRTLLanguage()) {
     nsTArray<dom::ContentParent*> children;

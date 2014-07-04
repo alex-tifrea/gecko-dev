@@ -678,6 +678,7 @@ ContentChild::InitXPCOM()
 
     bool isOffline, isLangRTL;
     SendGetXPCOMProcessAttributes(&isOffline, &isLangRTL);
+    RecvBidiKeyboardNotify(isLangRTL);
     RecvSetOffline(isOffline);
 
     DebugOnly<FileUpdateDispatcher*> observer = FileUpdateDispatcher::GetSingleton();
