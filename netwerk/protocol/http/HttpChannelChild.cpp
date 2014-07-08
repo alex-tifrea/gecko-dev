@@ -186,6 +186,7 @@ class StartRequestEvent : public ChannelEvent
                     const bool& useResponseHead,
                     const nsHttpHeaderArray& requestHeaders,
                     const bool& isFromCache,
+                    const int& onExamineType,
                     const bool& cacheEntryAvailable,
                     const uint32_t& cacheExpirationTime,
                     const nsCString& cachedCharset,
@@ -198,6 +199,7 @@ class StartRequestEvent : public ChannelEvent
   , mRequestHeaders(requestHeaders)
   , mUseResponseHead(useResponseHead)
   , mIsFromCache(isFromCache)
+  , mOnExamineType(onExamineType)
   , mCacheEntryAvailable(cacheEntryAvailable)
   , mCacheExpirationTime(cacheExpirationTime)
   , mCachedCharset(cachedCharset)
@@ -209,9 +211,10 @@ class StartRequestEvent : public ChannelEvent
   void Run()
   {
     mChild->OnStartRequest(mChannelStatus, mResponseHead, mUseResponseHead,
-                           mRequestHeaders, mIsFromCache, mCacheEntryAvailable,
-                           mCacheExpirationTime, mCachedCharset,
-                           mSecurityInfoSerialization, mSelfAddr, mPeerAddr);
+                           mRequestHeaders, mIsFromCache, mOnExamineType,
+                           mCacheEntryAvailable, mCacheExpirationTime,
+                           mCachedCharset, mSecurityInfoSerialization,
+                           mSelfAddr, mPeerAddr);
   }
  private:
   HttpChannelChild* mChild;
@@ -220,6 +223,7 @@ class StartRequestEvent : public ChannelEvent
   nsHttpHeaderArray mRequestHeaders;
   bool mUseResponseHead;
   bool mIsFromCache;
+  int mOnExamineType;
   bool mCacheEntryAvailable;
   uint32_t mCacheExpirationTime;
   nsCString mCachedCharset;
@@ -234,6 +238,7 @@ HttpChannelChild::RecvOnStartRequest(const nsresult& channelStatus,
                                      const bool& useResponseHead,
                                      const nsHttpHeaderArray& requestHeaders,
                                      const bool& isFromCache,
+                                     const int& onExamineType,
                                      const bool& cacheEntryAvailable,
                                      const uint32_t& cacheExpirationTime,
                                      const nsCString& cachedCharset,
@@ -255,15 +260,16 @@ HttpChannelChild::RecvOnStartRequest(const nsresult& channelStatus,
   if (mEventQ->ShouldEnqueue()) {
     mEventQ->Enqueue(new StartRequestEvent(this, channelStatus, responseHead,
                                            useResponseHead, requestHeaders,
-                                           isFromCache, cacheEntryAvailable,
+                                           isFromCache, onExamineType,
+                                           cacheEntryAvailable,
                                            cacheExpirationTime, cachedCharset,
                                            securityInfoSerialization, selfAddr,
                                            peerAddr));
   } else {
     OnStartRequest(channelStatus, responseHead, useResponseHead, requestHeaders,
-                   isFromCache, cacheEntryAvailable, cacheExpirationTime,
-                   cachedCharset, securityInfoSerialization, selfAddr,
-                   peerAddr);
+                   isFromCache, onExamineType, cacheEntryAvailable,
+                   cacheExpirationTime, cachedCharset, securityInfoSerialization,
+                   selfAddr, peerAddr);
   }
   return true;
 }
@@ -274,6 +280,7 @@ HttpChannelChild::OnStartRequest(const nsresult& channelStatus,
                                  const bool& useResponseHead,
                                  const nsHttpHeaderArray& requestHeaders,
                                  const bool& isFromCache,
+                                 const int& onExamineType,
                                  const bool& cacheEntryAvailable,
                                  const uint32_t& cacheExpirationTime,
                                  const nsCString& cachedCharset,
@@ -302,7 +309,7 @@ HttpChannelChild::OnStartRequest(const nsresult& channelStatus,
                          getter_AddRefs(mSecurityInfo));
   }
 
-  mIsFromCache = isFromCache;
+  mIsFromCache = isFromCache || (onExamineType == examine_cached);
   mCacheEntryAvailable = cacheEntryAvailable;
   mCacheExpirationTime = cacheExpirationTime;
   mCachedCharset = cachedCharset;
@@ -315,7 +322,22 @@ HttpChannelChild::OnStartRequest(const nsresult& channelStatus,
   // Note: this is where we would notify "http-on-examine-response" observers.
   // We have deliberately disabled this for child processes (see bug 806753)
   //
-  // gHttpHandler->OnExamineResponse(this);
+  // notify correct "http-on-examine-*" observers
+
+  switch (onExamineType) {
+    case examine_response:
+      gHttpHandler->OnExamineResponse(this);
+      break;
+    case examine_cached:
+      gHttpHandler->OnExamineCachedResponse(this);
+      break;
+    case examine_merged:
+      gHttpHandler->OnExamineMergedResponse(this);
+      break;
+    default:
+      NS_RUNTIMEABORT("Invalid OnExamineType");
+  }
+
 
   mTracingEnabled = false;
 

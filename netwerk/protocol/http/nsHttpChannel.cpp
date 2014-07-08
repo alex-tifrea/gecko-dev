@@ -225,6 +225,7 @@ nsHttpChannel::nsHttpChannel()
     , mConcurentCacheAccess(0)
     , mIsPartialRequest(0)
     , mHasAutoRedirectVetoNotifier(0)
+    , mOnExamineType(examine_invalid)
     , mDidReval(false)
 {
     LOG(("Creating nsHttpChannel [this=%p]\n", this));
@@ -360,6 +361,9 @@ nsHttpChannel::ContinueConnect()
         if (mCachedContentIsValid) {
             nsRunnableMethod<nsHttpChannel> *event = nullptr;
             if (!mCachedContentIsPartial) {
+                NS_ASSERTION(mOnExamineType == examine_invalid,
+                            "mOnExamineType already set");
+                mOnExamineType = examine_cached;
                 AsyncCall(&nsHttpChannel::AsyncOnExamineCachedResponse, &event);
             }
             nsresult rv = ReadFromCache(true);
@@ -1234,6 +1238,9 @@ nsHttpChannel::ProcessResponse()
     ProcessSSLInformation();
 
     // notify "http-on-examine-response" observers
+    NS_ASSERTION(mOnExamineType == examine_invalid,
+                 "mOnExamineType already set");
+    mOnExamineType = examine_response;
     gHttpHandler->OnExamineResponse(this);
 
     SetCookie(mResponseHead->PeekHeader(nsHttp::Set_Cookie));
@@ -2189,6 +2196,9 @@ nsHttpChannel::ProcessPartialContent()
 
     // notify observers interested in looking at a response that has been
     // merged with any cached headers (http-on-examine-merged-response).
+    NS_ASSERTION(mOnExamineType == examine_invalid,
+                 "mOnExamineType already set");
+    mOnExamineType = examine_merged;
     gHttpHandler->OnExamineMergedResponse(this);
 
     if (mConcurentCacheAccess) {
@@ -2326,8 +2336,11 @@ nsHttpChannel::ProcessNotModified()
     rv = AddCacheEntryHeaders(mCacheEntry);
     if (NS_FAILED(rv)) return rv;
 
-    // notify observers interested in looking at a reponse that has been
-    // merged with any cached headers
+    // notify observers interested in looking at a response that has been
+    // merged with any cached headers (http-on-examine-merged-response).
+    NS_ASSERTION(mOnExamineType == examine_invalid,
+                 "mOnExamineType already set");
+    mOnExamineType = examine_merged;
     gHttpHandler->OnExamineMergedResponse(this);
 
     mCachedContentIsValid = true;

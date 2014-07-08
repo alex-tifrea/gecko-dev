@@ -577,6 +577,11 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   nsCString cachedCharset;
   chan->GetCacheTokenCachedCharset(cachedCharset);
 
+  int onExamineType = chan->GetOnExamineType();
+  // By now on-examine-* notification must have happened.
+  NS_ASSERTION(onExamineType != examine_invalid,
+               "mOnExamineType not set");
+
   bool loadedFromApplicationCache;
   chan->GetLoadedFromApplicationCache(&loadedFromApplicationCache);
   if (loadedFromApplicationCache) {
@@ -625,6 +630,7 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
                           !!responseHead,
                           requestHead->Headers(),
                           isFromCache,
+                          onExamineType,
                           mCacheEntry ? true : false,
                           expirationTime, cachedCharset, secInfoSerialization,
                           mChannel->GetSelfAddr(), mChannel->GetPeerAddr(),

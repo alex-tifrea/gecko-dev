@@ -44,6 +44,15 @@ typedef uint8_t nsHttpVersion;
 #define NS_HTTP2_DRAFT_VERSION HTTP2_VERSION_DRAFT13
 #define NS_HTTP2_DRAFT_TOKEN "h2-13"
 
+// type of on-examine- notification to send
+enum OnExamineType {
+    examine_invalid = 0,
+    examine_response,
+    examine_cached,
+    examine_merged
+};
+
+
 //-----------------------------------------------------------------------------
 // http connection capabilities
 //-----------------------------------------------------------------------------

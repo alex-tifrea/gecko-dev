@@ -140,6 +140,8 @@ public: /* internal necko use only */
         return NS_OK;
     }
 
+    int GetOnExamineType() { return mOnExamineType; }
+
     // This allows cache entry to be marked as foreign even after channel itself
     // is gone.  Needed for e10s (see HttpChannelParent::RecvDocumentChannelCleanup)
     class OfflineCacheEntryAsForeignMarker {
@@ -389,6 +391,8 @@ private:
     // True if mRequestTime has been set. In such a case it is safe to update
     // the cache entry's expiration time. Otherwise, it is not(see bug 567360).
     uint32_t                          mRequestTimeInitialized : 1;
+    // Tells e10s child which type of on-examine- notification to send (see bug 697392)
+    PRUint32                          mOnExamineType            : 2;
     uint32_t                          mCacheEntryIsReadOnly : 1;
     uint32_t                          mCacheEntryIsWriteOnly : 1;
     // see WAIT_FOR_* constants above

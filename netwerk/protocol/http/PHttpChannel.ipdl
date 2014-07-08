@@ -85,6 +85,7 @@ child:
                  bool                useResponseHead,
                  nsHttpHeaderArray   requestHeaders,
                  bool                isFromCache,
+                 PRUint32            onExamineType,
                  bool                cacheEntryAvailable,
                  uint32_t            cacheExpirationTime,
                  nsCString           cachedCharset,
