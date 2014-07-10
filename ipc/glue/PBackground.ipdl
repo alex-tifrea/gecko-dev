@@ -12,6 +12,9 @@ include DOMTypes;
 using struct mozilla::void_t
   from "ipc/IPCMessageUtils.h";
 
+include protocol PBackgroundTest;
+include protocol PHttpRetargetChannel;
+
 namespace mozilla {
 namespace dom {
 namespace indexedDB {
@@ -33,6 +36,7 @@ sync protocol PBackground
   manages PBackgroundTest;
   manages PBlob;
   manages PFileDescriptorSet;
+  manages PHttpRetargetChannel;
 
 parent:
   // Only called at startup during mochitests to check the basic infrastructure.
@@ -44,6 +48,7 @@ both:
   PBlob(BlobConstructorParams params);
 
   PFileDescriptorSet(FileDescriptor fd);
+  PHttpRetargetChannel();
 };
 
 } // namespace ipc

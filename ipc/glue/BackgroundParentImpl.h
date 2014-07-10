@@ -7,6 +7,9 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/ipc/PBackgroundParent.h"
+#include "mozilla/net/PHttpRetargetChannelParent.h"
+
+using namespace mozilla::net;
 
 namespace mozilla {
 namespace ipc {
@@ -59,6 +62,12 @@ protected:
   virtual bool
   DeallocPFileDescriptorSetParent(PFileDescriptorSetParent* aActor)
                                   MOZ_OVERRIDE;
+
+  virtual PHttpRetargetChannelParent*
+  AllocPHttpRetargetChannelParent() MOZ_OVERRIDE;
+
+  virtual bool
+  DeallocPHttpRetargetChannelParent(PHttpRetargetChannelParent* aActor) MOZ_OVERRIDE;
 };
 
 } // namespace ipc

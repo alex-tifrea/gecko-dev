@@ -11,6 +11,8 @@
 #include "mozilla/dom/ipc/BlobParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/PBackgroundTestParent.h"
+#include "mozilla/net/PHttpRetargetChannelParent.h"
+#include "mozilla/net/HttpRetargetChannelParent.h"
 #include "nsThreadUtils.h"
 #include "nsTraceRefcnt.h"
 #include "nsXULAppAPI.h"
@@ -22,6 +24,7 @@
 #endif
 
 using mozilla::ipc::AssertIsOnBackgroundThread;
+using namespace mozilla::net;
 
 namespace {
 
@@ -115,6 +118,26 @@ BackgroundParentImpl::DeallocPBackgroundTestParent(
   MOZ_ASSERT(aActor);
 
   delete static_cast<TestParent*>(aActor);
+  return true;
+}
+
+PHttpRetargetChannelParent*
+BackgroundParentImpl::AllocPHttpRetargetChannelParent()
+{
+  AssertIsInMainProcess();
+  AssertIsOnBackgroundThread();
+
+  return new HttpRetargetChannelParent();
+}
+
+bool
+BackgroundParentImpl::DeallocPHttpRetargetChannelParent(PHttpRetargetChannelParent* aActor)
+{
+  AssertIsInMainProcess();
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(aActor);
+
+  delete static_cast<HttpRetargetChannelParent*>(aActor);
   return true;
 }
 

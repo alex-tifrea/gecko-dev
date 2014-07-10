@@ -9,7 +9,11 @@
 #include "mozilla/dom/indexedDB/PBackgroundIDBFactoryChild.h"
 #include "mozilla/dom/ipc/BlobChild.h"
 #include "mozilla/ipc/PBackgroundTestChild.h"
+#include "mozilla/net/PHttpRetargetChannelChild.h"
+#include "mozilla/net/HttpRetargetChannelChild.h"
 #include "nsTraceRefcnt.h"
+
+using namespace mozilla::net;
 
 namespace {
 
@@ -98,6 +102,21 @@ BackgroundChildImpl::DeallocPBackgroundTestChild(PBackgroundTestChild* aActor)
   MOZ_ASSERT(aActor);
 
   delete static_cast<TestChild*>(aActor);
+  return true;
+}
+
+PHttpRetargetChannelChild*
+BackgroundChildImpl::AllocPHttpRetargetChannelChild()
+{
+    return new HttpRetargetChannelChild();
+}
+
+bool
+BackgroundChildImpl::DeallocPHttpRetargetChannelChild(PHttpRetargetChannelChild* aActor)
+{
+  MOZ_ASSERT(aActor);
+
+  delete static_cast<HttpRetargetChannelChild*>(aActor);
   return true;
 }
 
