@@ -122,7 +122,7 @@
 #include "prio.h"
 #include "private/pprio.h"
 
-#include "nsBidiKeyboard.h"
+#include "nsIBidiKeyboard.h"
 
 #if defined(ANDROID) || defined(LINUX)
 #include "nsSystemInfo.h"
