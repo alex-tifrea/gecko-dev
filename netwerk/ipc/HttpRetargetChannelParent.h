@@ -17,7 +17,7 @@ public:
   ActorDestroy(ActorDestroyReason aWhy);
 
   HttpRetargetChannelParent();
-  virtual ~HttpRetargetChannelParent();
+  ~HttpRetargetChannelParent();
 };
 } // namespace net
 } // namespace mozilla

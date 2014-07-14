@@ -4,8 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//using namespace mozilla::ipc;
-
 include protocol PBackground;
 
 namespace mozilla {
@@ -16,7 +14,13 @@ async protocol PHttpRetargetChannel
   manager PBackground;
 
 child:
-  RetargetOnDataAvailable();
+  OnTransportAndData(nsresult channelStatus,
+                     nsresult transportStatus,
+                     uint64_t progress,
+                     uint64_t progressMax,
+                     nsCString data,
+                     uint64_t offset,
+                     uint32_t count);
   __delete__();
 };
 

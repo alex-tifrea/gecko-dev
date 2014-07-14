@@ -5,7 +5,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "mozilla/Assertions.h"
+#include "nsThreadUtils.h"
+#include "nsTraceRefcnt.h"
+#include "nsXULAppAPI.h"
 #include "HttpRetargetChannelParent.h"
+
+void
+AssertIsInMainProcess()
+{
+  MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_Default);
+}
 
 namespace mozilla {
 namespace net {
@@ -16,6 +26,7 @@ HttpRetargetChannelParent::ActorDestroy(ActorDestroyReason aWhy)
 
 HttpRetargetChannelParent::HttpRetargetChannelParent()
 {
+  AssertIsInMainProcess();
   MOZ_COUNT_CTOR(HttpRetargetChannelParent);
 }
 

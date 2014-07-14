@@ -12,10 +12,33 @@
 #include "mozilla/net/PHttpRetargetChannelChild.h"
 #include "mozilla/net/HttpRetargetChannelChild.h"
 #include "nsTraceRefcnt.h"
+#include "mozilla/Assertions.h"
+#include "nsThreadUtils.h"
+#include "nsXULAppAPI.h"
 
 using namespace mozilla::net;
 
 namespace {
+
+bool
+IsMainProcess()
+{
+  static const bool isMainProcess =
+    XRE_GetProcessType() == GeckoProcessType_Default;
+  return isMainProcess;
+}
+
+bool
+IsChildProcess()
+{
+  return !IsMainProcess();
+}
+
+void
+AssertIsInChildProcess()
+{
+  MOZ_ASSERT(IsChildProcess());
+}
 
 class TestChild MOZ_FINAL : public mozilla::ipc::PBackgroundTestChild
 {
@@ -107,13 +130,16 @@ BackgroundChildImpl::DeallocPBackgroundTestChild(PBackgroundTestChild* aActor)
 
 PHttpRetargetChannelChild*
 BackgroundChildImpl::AllocPHttpRetargetChannelChild()
-{
-    return new HttpRetargetChannelChild();
+{   
+  AssertIsInChildProcess();
+
+  return new HttpRetargetChannelChild();
 }
 
 bool
 BackgroundChildImpl::DeallocPHttpRetargetChannelChild(PHttpRetargetChannelChild* aActor)
 {
+  AssertIsInChildProcess();
   MOZ_ASSERT(aActor);
 
   delete static_cast<HttpRetargetChannelChild*>(aActor);

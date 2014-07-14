@@ -205,6 +205,7 @@ private:
   friend class Redirect3Event;
   friend class DeleteSelfEvent;
   friend class HttpAsyncAborter<HttpChannelChild>;
+  friend class OnTransportAndDataRunnable;
 };
 
 //-----------------------------------------------------------------------------
