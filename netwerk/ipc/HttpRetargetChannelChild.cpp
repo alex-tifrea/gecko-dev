@@ -11,6 +11,7 @@
 #include "nsIStreamListener.h"
 #include "mozilla/net/PHttpChannelChild.h"
 #include "mozilla/net/HttpChannelChild.h"
+#include "nsIRequest.h"
 
 namespace mozilla {
 namespace net {
@@ -34,6 +35,8 @@ public:
         mProgressMax(aProgressMax), mData(aData), mOffset(aOffset),
         mCount(aCount)
     {
+        // TODO: use IsOnBackgroundThread instead
+        // see: BackgroundImpl.cpp
         MOZ_ASSERT(!NS_IsMainThread());
         MOZ_ASSERT(aHttpChannel);
     }
@@ -78,7 +81,7 @@ HttpRetargetChannelChild::RecvOnTransportAndData(const nsresult& channelStatus,
                                                  const uint64_t& offset,
                                                  const uint32_t& count) {
   /*
-  PHttpChannelChild* httpChannel;
+  PHttpChannelChild* httpChannel();
   // TODO: get the httpChannel in the main thread
   nsRefPtr<OnTransportAndDataRunnable> runnable =
     new OnTransportAndDataRunnable(httpChannel, channelStatus, transportStatus,
@@ -91,6 +94,12 @@ HttpRetargetChannelChild::RecvOnTransportAndData(const nsresult& channelStatus,
 HttpRetargetChannelChild::HttpRetargetChannelChild()
 {
   MOZ_COUNT_CTOR(HttpRetargetChannelChild);
+}
+
+HttpRetargetChannelChild::HttpRetargetChannelChild(nsIRequest* aHttpChannel)
+{
+  MOZ_COUNT_CTOR(HttpRetargetChannelChild);
+  mHttpChannel = aHttpChannel;
 }
 
 HttpRetargetChannelChild::~HttpRetargetChannelChild()

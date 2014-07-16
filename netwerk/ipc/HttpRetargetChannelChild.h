@@ -9,6 +9,7 @@
 #define _HttpRetargetChannelChild_h
 
 #include "mozilla/net/PHttpRetargetChannelChild.h"
+#include "nsIRequest.h"
 
 namespace mozilla {
 namespace net {
@@ -25,7 +26,10 @@ public:
                                       const uint32_t& count);
 
   HttpRetargetChannelChild();
+  HttpRetargetChannelChild(nsIRequest* aHttpChannel);
   ~HttpRetargetChannelChild();
+private:
+  nsCOMPtr<nsIRequest> mHttpChannel;
 };
 
 } // namespace net

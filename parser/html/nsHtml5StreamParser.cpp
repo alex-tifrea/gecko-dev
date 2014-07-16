@@ -935,6 +935,9 @@ nsHtml5StreamParser::OnStartRequest(nsIRequest* aRequest, nsISupports* aContext)
     }
   }
 
+  // TODO: create HttpRetargetChannel actors;
+  // TODO: create some sort of link between the actors and the httpChannel
+
   // Attempt to retarget delivery of data (via OnDataAvailable) to the parser
   // thread, rather than through the main thread.
   nsCOMPtr<nsIThreadRetargetableRequest> threadRetargetableRequest =
@@ -1157,6 +1160,11 @@ nsHtml5StreamParser::OnDataAvailable(nsIRequest* aRequest,
     }
     return rv;
   } else {
+    // TODO: I think I should add code here too
+    // I think I have to call HttpRetargetChannelParent::SendOnTransportOrData
+    // if I am on the background thread;
+    // 1) how do I "get" the HttpRetargetChannelParent instance?
+    // 2) how do I convert the arguments of ODA into OTAD arguments?
     NS_ASSERTION(IsParserThread(), "Wrong thread!");
     mozilla::MutexAutoLock autoLock(mTokenizerMutex);
 
@@ -1170,6 +1178,8 @@ nsHtml5StreamParser::OnDataAvailable(nsIRequest* aRequest,
     return NS_OK;
   }
 }
+
+// TODO: how does this thing *below* work?
 
 /* static */
 NS_METHOD

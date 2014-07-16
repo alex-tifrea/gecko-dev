@@ -19,6 +19,7 @@ AssertIsInMainProcess()
 
 namespace mozilla {
 namespace net {
+
 void
 HttpRetargetChannelParent::ActorDestroy(ActorDestroyReason aWhy)
 {

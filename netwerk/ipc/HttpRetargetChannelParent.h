@@ -13,8 +13,7 @@ class HttpRetargetChannelParent MOZ_FINAL :
   public PHttpRetargetChannelParent
 {
 public:
-  virtual void
-  ActorDestroy(ActorDestroyReason aWhy);
+  virtual void ActorDestroy(ActorDestroyReason aWhy);
 
   HttpRetargetChannelParent();
   ~HttpRetargetChannelParent();
