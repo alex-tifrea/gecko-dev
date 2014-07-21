@@ -75,6 +75,7 @@ HttpBaseChannel::HttpBaseChannel()
   , mHttpHandler(gHttpHandler)
   , mRedirectCount(0)
   , mForcePending(false)
+  , mChannelId(0)
 {
   LOG(("Creating HttpBaseChannel @%x\n", this));
 

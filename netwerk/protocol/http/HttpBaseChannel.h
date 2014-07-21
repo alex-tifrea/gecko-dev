@@ -348,6 +348,9 @@ protected:
   // pass the Resource Timing timing-allow-check
   uint32_t                          mAllRedirectsPassTimingAllowCheck : 1;
 
+  // The ID of the HTTP channel
+  uint32_t                          mChannelId;
+
   // Current suspension depth for this channel object
   uint32_t                          mSuspendCount;
 

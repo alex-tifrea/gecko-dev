@@ -64,7 +64,11 @@ protected:
                                   MOZ_OVERRIDE;
 
   virtual PHttpRetargetChannelParent*
-  AllocPHttpRetargetChannelParent() MOZ_OVERRIDE;
+  AllocPHttpRetargetChannelParent(const uint32_t& channelId) MOZ_OVERRIDE;
+
+  virtual bool
+  RecvPHttpRetargetChannelConstructor(PHttpRetargetChannelParent* aActor,
+                                      const uint32_t& aChannelId) MOZ_OVERRIDE;
 
   virtual bool
   DeallocPHttpRetargetChannelParent(PHttpRetargetChannelParent* aActor) MOZ_OVERRIDE;

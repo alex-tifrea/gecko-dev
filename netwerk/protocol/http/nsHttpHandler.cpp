@@ -67,6 +67,7 @@
 
 //-----------------------------------------------------------------------------
 #include "mozilla/net/HttpChannelChild.h"
+#include "mozilla/net/HttpRetargetChannelChild.h"
 
 
 #ifdef DEBUG
@@ -165,6 +166,7 @@ nsHttpHandler::nsHttpHandler()
     , mPipeliningOverSSL(false)
     , mEnforceAssocReq(false)
     , mLastUniqueID(NowInSeconds())
+    , mLastChannelID(0)
     , mSessionStartTime(0)
     , mLegacyAppName("Mozilla")
     , mLegacyAppVersion("5.0")
@@ -1690,6 +1692,7 @@ nsHttpHandler::NewProxiedChannel(nsIURI *uri,
                                  nsIChannel **result)
 {
     nsRefPtr<HttpBaseChannel> httpChannel;
+    HttpRetargetChannelChild* httpRetargetChannel;
 
     LOG(("nsHttpHandler::NewProxiedChannel [proxyInfo=%p]\n",
         givenProxyInfo));
@@ -1706,7 +1709,9 @@ nsHttpHandler::NewProxiedChannel(nsIURI *uri,
         return rv;
 
     if (IsNeckoChild()) {
-        httpChannel = new HttpChannelChild();
+        uint32_t channelID = GenerateChannelID();
+        httpRetargetChannel = new HttpRetargetChannelChild(channelID);
+        httpChannel = new HttpChannelChild(channelID);
     } else {
         httpChannel = new nsHttpChannel();
     }

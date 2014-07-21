@@ -725,6 +725,7 @@ private:
     bool mCalledKillHard;
 
     friend class CrashReporterParent;
+    friend class SendMyselfToMainThread;
 
     nsRefPtr<nsConsoleService>  mConsoleService;
     nsConsoleService* GetConsoleService();

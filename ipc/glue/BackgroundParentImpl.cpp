@@ -122,13 +122,28 @@ BackgroundParentImpl::DeallocPBackgroundTestParent(
 }
 
 PHttpRetargetChannelParent*
-BackgroundParentImpl::AllocPHttpRetargetChannelParent()
+BackgroundParentImpl::AllocPHttpRetargetChannelParent(const uint32_t& channelId)
 {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
   return new HttpRetargetChannelParent();
 }
+
+bool
+BackgroundParentImpl::RecvPHttpRetargetChannelConstructor(
+                                                  PHttpRetargetChannelParent* aActor,
+                                                  const uint32_t& aChannelId)
+{
+  AssertIsInMainProcess();
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(aActor);
+
+  HttpRetargetChannelParent* p = static_cast<HttpRetargetChannelParent*>(aActor);
+
+  return p->Init(aChannelId);
+}
+
 
 bool
 BackgroundParentImpl::DeallocPHttpRetargetChannelParent(PHttpRetargetChannelParent* aActor)

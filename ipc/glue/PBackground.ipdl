@@ -48,7 +48,8 @@ both:
   PBlob(BlobConstructorParams params);
 
   PFileDescriptorSet(FileDescriptor fd);
-  PHttpRetargetChannel();
+
+  PHttpRetargetChannel(uint32_t channelId);
 };
 
 } // namespace ipc

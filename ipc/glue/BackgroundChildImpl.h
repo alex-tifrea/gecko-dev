@@ -73,7 +73,7 @@ protected:
   DeallocPFileDescriptorSetChild(PFileDescriptorSetChild* aActor) MOZ_OVERRIDE;
 
   virtual PHttpRetargetChannelChild*
-  AllocPHttpRetargetChannelChild() MOZ_OVERRIDE;
+  AllocPHttpRetargetChannelChild(const uint32_t& channelId) MOZ_OVERRIDE;
 
   virtual bool
   DeallocPHttpRetargetChannelChild(PHttpRetargetChannelChild* aActor) MOZ_OVERRIDE;

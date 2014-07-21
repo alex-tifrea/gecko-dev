@@ -28,6 +28,8 @@
 #include "mozilla/net/ChannelDiverterChild.h"
 #include "mozilla/net/DNS.h"
 #include "SerializedLoadContext.h"
+#include "nsPerformance.h"
+#include "mozilla/ipc/BackgroundChild.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
@@ -39,7 +41,7 @@ namespace net {
 // HttpChannelChild
 //-----------------------------------------------------------------------------
 
-HttpChannelChild::HttpChannelChild()
+HttpChannelChild::HttpChannelChild(uint32_t aChannelId)
   : HttpAsyncAborter<HttpChannelChild>(MOZ_THIS_IN_INITIALIZER_LIST())
   , mIsFromCache(false)
   , mCacheEntryAvailable(false)
@@ -53,6 +55,9 @@ HttpChannelChild::HttpChannelChild()
 {
   LOG(("Creating HttpChannelChild @%x\n", this));
 
+  mBackgroundChild = BackgroundChild::GetForCurrentThread();
+
+  mChannelId = aChannelId;
   mChannelCreationTime = PR_Now();
   mChannelCreationTimestamp = TimeStamp::Now();
   mAsyncOpenTime = TimeStamp::Now();
@@ -988,6 +993,11 @@ HttpChannelChild::ConnectParent(uint32_t id)
     return NS_ERROR_FAILURE;
   }
 
+  if (!mBackgroundChild->
+        SendPHttpRetargetChannelConstructor(mChannelId)) {
+    return NS_ERROR_FAILURE;
+  }
+
   return NS_OK;
 }
 
@@ -1310,6 +1320,7 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
   openArgs.chooseApplicationCache() = mChooseApplicationCache;
   openArgs.appCacheClientID() = appCacheClientId;
   openArgs.allowSpdy() = mAllowSpdy;
+  openArgs.channelId() = mChannelId;
 
   propagateLoadInfo(mLoadInfo, openArgs);
 

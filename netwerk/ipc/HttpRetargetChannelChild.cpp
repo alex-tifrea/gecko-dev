@@ -37,6 +37,8 @@ public:
     {
         // TODO: use IsOnBackgroundThread instead
         // see: BackgroundImpl.cpp
+        // TODO: I think that the IsOnBackgroundThread method can be used only
+        // for the parent process
         MOZ_ASSERT(!NS_IsMainThread());
         MOZ_ASSERT(aHttpChannel);
     }
@@ -96,11 +98,19 @@ HttpRetargetChannelChild::HttpRetargetChannelChild()
   MOZ_COUNT_CTOR(HttpRetargetChannelChild);
 }
 
+HttpRetargetChannelChild::HttpRetargetChannelChild(uint32_t aChannelId)
+{
+  MOZ_COUNT_CTOR(HttpRetargetChannelChild);
+  mChannelId = aChannelId;
+}
+
+/*
 HttpRetargetChannelChild::HttpRetargetChannelChild(nsIRequest* aHttpChannel)
 {
   MOZ_COUNT_CTOR(HttpRetargetChannelChild);
   mHttpChannel = aHttpChannel;
 }
+*/
 
 HttpRetargetChannelChild::~HttpRetargetChannelChild()
 {

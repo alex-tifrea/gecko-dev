@@ -157,6 +157,9 @@ public:
     uint32_t GenerateUniqueID() { return ++mLastUniqueID; }
     uint32_t SessionStartTime() { return mSessionStartTime; }
 
+    // http channel ID
+    uint32_t GenerateChannelID() { return ++mLastChannelID; }
+
     //
     // Connection management methods:
     //
@@ -399,6 +402,9 @@ private:
     // cache support
     uint32_t                  mLastUniqueID;
     uint32_t                  mSessionStartTime;
+
+    // http channel ID
+    uint32_t                  mLastChannelID;
 
     // useragent components
     nsCString      mLegacyAppName;

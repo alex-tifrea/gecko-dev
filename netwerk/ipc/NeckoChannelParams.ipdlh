@@ -50,9 +50,13 @@ struct HttpChannelOpenArgs
   nsCString                   appCacheClientID;
   bool                        allowSpdy;
   OptionalFileDescriptorSet   fds;
+
   PrincipalInfo               requestingPrincipalInfo;
   uint32_t                    securityFlags;
   uint32_t                    contentPolicyType;
+
+  // channelID is an identifier for each http channel that is created
+  uint32_t                    channelId;
 };
 
 struct HttpChannelConnectArgs

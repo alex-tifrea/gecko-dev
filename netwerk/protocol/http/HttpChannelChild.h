@@ -29,6 +29,9 @@
 #include "nsIHttpChannelChild.h"
 #include "nsIDivertableChannel.h"
 #include "mozilla/net/DNS.h"
+#include "mozilla/ipc/PBackgroundChild.h"
+
+using namespace mozilla::ipc;
 
 namespace mozilla {
 namespace net {
@@ -58,7 +61,7 @@ public:
   NS_DECL_NSIHTTPCHANNELCHILD
   NS_DECL_NSIDIVERTABLECHANNEL
 
-  HttpChannelChild();
+  HttpChannelChild(uint32_t aChannelId);
 
   // Methods HttpBaseChannel didn't implement for us or that we override.
   //
@@ -145,6 +148,9 @@ private:
 
   // If ResumeAt is called before AsyncOpen, we need to send extra data upstream
   bool mSendResumeAt;
+
+  // The PBackground actor
+  PBackgroundChild* mBackgroundChild;
 
   bool mIPCOpen;
   bool mKeptAlive;            // IPC kept open, but only for security info
