@@ -27,12 +27,10 @@ public:
 
   HttpRetargetChannelChild();
   HttpRetargetChannelChild(uint32_t aChannelId);
-  //HttpRetargetChannelChild(nsIRequest* aHttpChannel);
   ~HttpRetargetChannelChild();
   uint32_t GetChannelId() { return mChannelId; }
 
 private:
-  //nsCOMPtr<nsIRequest> mHttpChannel;
   uint32_t mChannelId;
 };
 

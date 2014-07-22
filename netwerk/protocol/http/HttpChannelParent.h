@@ -19,6 +19,9 @@
 #include "nsIProgressEventSink.h"
 #include "nsHttpChannel.h"
 #include "nsIAuthPromptProvider.h"
+#include "mozilla/net/PHttpRetargetChannelParent.h"
+
+using namespace mozilla::net;
 
 class nsICacheEntry;
 class nsIAssociatedContentSecurity;
@@ -177,6 +180,10 @@ private:
   bool mSuspendedForDiversion;
 
   uint64_t mNestedFrameId;
+
+  // A reference to the coresponding PHttpRetargetChannel actor. The reference
+  // is looked up in the mHttpRetargetChannels hashtable.
+  PHttpRetargetChannel* mHttpRetargetParent;
 };
 
 } // namespace net

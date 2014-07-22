@@ -496,12 +496,6 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
      */
     nsCOMPtr<nsIThread>           mThread;
 
-    // TODO: don't need a member for this; use "getter"
-    /**
-     * This stream's background thread.
-     */
-    nsCOMPtr<nsIThread>           mBackgroundThread;
-    
     nsCOMPtr<nsIRunnable>         mExecutorFlusher;
     
     nsCOMPtr<nsIRunnable>         mLoadFlusher;

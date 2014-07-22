@@ -44,7 +44,6 @@ class ContentParent;
 class SendMyselfToMainThread : public nsRunnable
 {
 public:
-  // TODO: take already_AddRefed as param.
   SendMyselfToMainThread(already_AddRefed<ContentParent> aContentParent,
                          PHttpRetargetChannelParent* aHttpRetargetChannelParent)
     :  mContentParent(aContentParent),
@@ -73,13 +72,11 @@ public:
 
     mContentParent->AddHttpRetargetChannel(/* key */ tmpHttpRetarget->GetChannelId(),
                                            /* value */ mHttpRetargetChannelParent);
-    //TODO: null the ref to ContentParent
     mContentParent = NULL;
     return NS_OK;
   }
 
 private:
-  //TODO: make nsRefPtr
   nsRefPtr<ContentParent> mContentParent;
   PHttpRetargetChannelParent* mHttpRetargetChannelParent;
 };
@@ -119,7 +116,6 @@ HttpRetargetChannelParent::Init(uint32_t aChannelId,
   AssertIsOnBackgroundThread();
   mChannelId = aChannelId;
   mBackgroundParent = aBackgroundParent;
-  //TODO: no longer assign it to a var
   nsRefPtr<SendMyselfToMainThread> runnable =
     new SendMyselfToMainThread(BackgroundParent::GetContentParent(mBackgroundParent),
                                this);
