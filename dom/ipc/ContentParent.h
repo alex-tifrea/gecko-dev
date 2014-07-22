@@ -17,14 +17,18 @@
 #include "mozilla/StaticPtr.h"
 
 #include "nsDataHashtable.h"
+#include "nsInterfaceHashtable.h"
 #include "nsFrameMessageManager.h"
 #include "nsHashKeys.h"
 #include "nsIObserver.h"
 #include "nsIThreadInternal.h"
 #include "nsIDOMGeoPositionCallback.h"
 #include "PermissionMessageUtils.h"
+#include "mozilla/net/PHttpRetargetChannelParent.h"
 
 #define CHILD_PROCESS_SHUTDOWN_MESSAGE NS_LITERAL_STRING("child-process-shutdown")
+
+using namespace mozilla::net;
 
 class mozIApplication;
 class nsConsoleService;
@@ -281,6 +285,8 @@ public:
     virtual PBlobParent* SendPBlobConstructor(
         PBlobParent* aActor,
         const BlobConstructorParams& aParams) MOZ_OVERRIDE;
+
+    virtual void AddHttpRetargetChannel(uint32_t aKey, PHttpRetargetChannelParent* aData);
 
 protected:
     void OnChannelConnected(int32_t pid) MOZ_OVERRIDE;
@@ -731,6 +737,8 @@ private:
     nsConsoleService* GetConsoleService();
 
     nsDataHashtable<nsUint64HashKey, nsRefPtr<ParentIdleListener> > mIdleListeners;
+
+    nsDataHashtable<nsUint32HashKey, PHttpRetargetChannelParent* > mHttpRetargetChannels;
 
 #ifdef MOZ_X11
     // Dup of child's X socket, used to scope its resources to this

@@ -14,9 +14,22 @@
 #include "BackgroundParent.h"
 #include "mozilla/dom/PContentParent.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/ipc/BackgroundParent.h"
+#include "mozilla/ipc/PBackgroundParent.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::net;
+
+namespace {
+
+void
+AssertIsOnMainThread()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+}
+
+} // anonymous namespace
+
 
 namespace mozilla {
 namespace dom {
@@ -31,41 +44,44 @@ class ContentParent;
 class SendMyselfToMainThread : public nsRunnable
 {
 public:
-    SendMyselfToMainThread(PContentParent* aContentParent,
-                           PHttpRetargetChannelParent* aHttpRetargetChannelParent)
-      : mContentParent(aContentParent),
-        mHttpRetargetChannelParent(aHttpRetargetChannelParent)
-    {
-        AssertIsOnBackgroundThread();
-        MOZ_ASSERT(aContentParent);
-    }
+  // TODO: take already_AddRefed as param.
+  SendMyselfToMainThread(already_AddRefed<ContentParent> aContentParent,
+                         PHttpRetargetChannelParent* aHttpRetargetChannelParent)
+    :  mContentParent(aContentParent),
+       mHttpRetargetChannelParent(aHttpRetargetChannelParent)
 
-    void Dispatch()
-    {
-        AssertIsOnBackgroundThread();
+  {
+    AssertIsOnBackgroundThread();
+    MOZ_ASSERT(mContentParent);
+  }
 
-        nsresult rv = NS_DispatchToMainThread(this);
-        NS_ENSURE_SUCCESS_VOID(rv);
-    }
+  void Dispatch()
+  {
+    AssertIsOnBackgroundThread();
 
-    NS_IMETHOD Run()
-    {
-        AssertIsOnBackgroundThread();
-        MOZ_ASSERT(mContentParent);
+    nsresult rv = NS_DispatchToMainThread(this);
+    NS_ENSURE_SUCCESS_VOID(rv);
+  }
 
-        ContentParent* tmpContent = static_cast<ContentParent*>(mContentParent);
-        HttpRetargetChannelParent* tmpHttpRetarget =
-            static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannelParent);
-        // TODO: add a method in ContentParent that adds an entry in the
-        // hashtable; it should look like this:
-        // tmp->AddEntryInHashtable(/* key */ tmpHttpRetarget->GetChannelId(),
-        //                          /* value */ aHttpRetargetChannelParent);
-        return NS_OK;
-    }
+  NS_IMETHOD Run()
+  {
+    AssertIsOnMainThread();
+    MOZ_ASSERT(mContentParent);
+
+    HttpRetargetChannelParent* tmpHttpRetarget =
+        static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannelParent);
+
+    mContentParent->AddHttpRetargetChannel(/* key */ tmpHttpRetarget->GetChannelId(),
+                                           /* value */ mHttpRetargetChannelParent);
+    //TODO: null the ref to ContentParent
+    mContentParent = NULL;
+    return NS_OK;
+  }
 
 private:
-    PContentParent* mContentParent;
-    PHttpRetargetChannelParent* mHttpRetargetChannelParent;
+  //TODO: make nsRefPtr
+  nsRefPtr<ContentParent> mContentParent;
+  PHttpRetargetChannelParent* mHttpRetargetChannelParent;
 };
 
 } // namespace mozilla
@@ -97,9 +113,17 @@ HttpRetargetChannelParent::~HttpRetargetChannelParent()
 }
 
 bool
-HttpRetargetChannelParent::Init(uint32_t aChannelId)
+HttpRetargetChannelParent::Init(uint32_t aChannelId,
+                                PBackgroundParent* aBackgroundParent)
 {
+  AssertIsOnBackgroundThread();
   mChannelId = aChannelId;
+  mBackgroundParent = aBackgroundParent;
+  //TODO: no longer assign it to a var
+  nsRefPtr<SendMyselfToMainThread> runnable =
+    new SendMyselfToMainThread(BackgroundParent::GetContentParent(mBackgroundParent),
+                               this);
+  runnable->Dispatch();
   return true;
 }
 

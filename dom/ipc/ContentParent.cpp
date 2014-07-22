@@ -127,6 +127,7 @@
 #include "gfxPrefs.h"
 #include "prio.h"
 #include "private/pprio.h"
+#include "mozilla/net/PHttpRetargetChannelParent.h"
 
 #if defined(ANDROID) || defined(LINUX)
 #include "nsSystemInfo.h"
@@ -210,6 +211,7 @@ using namespace mozilla::layers;
 using namespace mozilla::net;
 using namespace mozilla::jsipc;
 using namespace mozilla::widget;
+using namespace mozilla::net;
 
 #ifdef ENABLE_TESTS
 
@@ -1695,6 +1697,8 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
     }
 
     mIdleListeners.Clear();
+
+    mHttpRetargetChannels.Clear();
 
     // If the child process was terminated due to a SIGKIL, ShutDownProcess
     // might not have been called yet.  We must call it to ensure that our
@@ -4076,6 +4080,12 @@ ContentParent::NotifyUpdatedDictionaries()
     for (size_t i = 0; i < processes.Length(); ++i) {
         unused << processes[i]->SendUpdateDictionaryList(dictionaries);
     }
+}
+
+ContentParent::AddHttpRetargetChannel(uint32_t aKey,
+                                      PHttpRetargetChannelParent* aData)
+{
+   mHttpRetargetChannels.Put(aKey, aData);
 }
 
 } // namespace dom
