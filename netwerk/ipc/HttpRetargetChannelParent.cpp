@@ -14,8 +14,9 @@
 #include "BackgroundParent.h"
 #include "mozilla/dom/PContentParent.h"
 #include "mozilla/dom/ContentParent.h"
-#include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/PBackgroundParent.h"
+#include "mozilla/net/PHttpChannelParent.h"
+#include "mozilla/net/HttpChannelParent.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::net;
@@ -72,6 +73,28 @@ public:
 
     mContentParent->AddHttpRetargetChannel(/* key */ tmpHttpRetarget->GetChannelId(),
                                            /* value */ mHttpRetargetChannelParent);
+
+    // TODO: need to debug this to see if it ever gets to this part of the code
+    if (mContentParent->GetMustCallAsyncOpen()) {
+      // | HttpChannelParent::DoAsyncOpen1 | could not call
+      // | HttpChannelParent::DoAsyncOpen2 |; that's why it will be called now.
+
+      // TODO: I assumed that a | ContentParent | actor manages only one
+      // instance of | NeckoParent |
+      const InfallibleTArray<PHttpChannelParent*>& channels =
+        mContentParent->ManagedPNeckoParent()[0]->ManagedPHttpChannelParent();
+
+      // Searching through the HttpChannelParent actors for the one
+      // corresponding to the current HttpRetargetChannelParent instance
+      for (uint32_t i = 0; i < channels.Length(); i++) {
+        HttpChannelParent* curr_channel = static_cast<HttpChannelParent*>(channels[i]);
+        if (curr_channel->GetChannelID() ==
+            static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannelParent)->GetChannelId()) {
+          curr_channel->DoAsyncOpen2(mHttpRetargetChannelParent);
+        }
+      }
+    }
+
     mContentParent = NULL;
     return NS_OK;
   }
@@ -110,14 +133,15 @@ HttpRetargetChannelParent::~HttpRetargetChannelParent()
 }
 
 bool
-HttpRetargetChannelParent::Init(uint32_t aChannelId,
-                                PBackgroundParent* aBackgroundParent)
+HttpRetargetChannelParent::Init(uint32_t aChannelId)
 {
   AssertIsOnBackgroundThread();
+
+  PBackgroundParent* backgroundParent = this->Manager();
+
   mChannelId = aChannelId;
-  mBackgroundParent = aBackgroundParent;
   nsRefPtr<SendMyselfToMainThread> runnable =
-    new SendMyselfToMainThread(BackgroundParent::GetContentParent(mBackgroundParent),
+    new SendMyselfToMainThread(BackgroundParent::GetContentParent(backgroundParent),
                                this);
   runnable->Dispatch();
   return true;

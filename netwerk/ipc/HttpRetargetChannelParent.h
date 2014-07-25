@@ -9,7 +9,6 @@
 #define _HttpRetargetChannelParent_h
 
 #include "mozilla/net/PHttpRetargetChannelParent.h"
-#include "mozilla/ipc/PBackgroundParent.h"
 
 namespace mozilla {
 namespace net {
@@ -22,14 +21,12 @@ public:
 
   HttpRetargetChannelParent();
   ~HttpRetargetChannelParent();
-  virtual bool Init(uint32_t aChannelId,
-                    PBackgroundParent* aBackgroundParent);
+  virtual bool Init(uint32_t aChannelId);
 
   uint32_t GetChannelId() { return mChannelId; }
 
 private:
   uint32_t mChannelId;
-  PBackgroundParent* mBackgroundParent;
 };
 
 } // namespace net

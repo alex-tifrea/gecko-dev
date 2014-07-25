@@ -28,7 +28,7 @@
 
 #define CHILD_PROCESS_SHUTDOWN_MESSAGE NS_LITERAL_STRING("child-process-shutdown")
 
-using namespace mozilla::net;
+typedef mozilla::net::PHttpRetargetChannelParent PHttpRetargetChannelParent;
 
 class mozIApplication;
 class nsConsoleService;
@@ -287,6 +287,16 @@ public:
         const BlobConstructorParams& aParams) MOZ_OVERRIDE;
 
     virtual void AddHttpRetargetChannel(uint32_t aKey, PHttpRetargetChannelParent* aData);
+
+    virtual PHttpRetargetChannelParent* GetHttpRetargetChannel(uint32_t aKey);
+
+    virtual void RemoveHttpRetargetChannel(uint32_t aKey);
+
+    void SetMustCallAsyncOpen(bool aMustCallAsyncOpen) {
+      mMustCallAsyncOpen = aMustCallAsyncOpen;
+    }
+
+    bool GetMustCallAsyncOpen() { return mMustCallAsyncOpen; }
 
 protected:
     void OnChannelConnected(int32_t pid) MOZ_OVERRIDE;
@@ -729,6 +739,10 @@ private:
     bool mCalledClose;
     bool mCalledCloseWithError;
     bool mCalledKillHard;
+
+    // If | mMustCallAsyncOpen | is true, then SendMyselfToMainThread::Run()
+    // should also call AsyncOpen
+    bool mMustCallAsyncOpen;
 
     friend class CrashReporterParent;
     friend class SendMyselfToMainThread;

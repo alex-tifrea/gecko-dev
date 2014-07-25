@@ -141,7 +141,7 @@ BackgroundParentImpl::RecvPHttpRetargetChannelConstructor(
 
   HttpRetargetChannelParent* p = static_cast<HttpRetargetChannelParent*>(aActor);
 
-  return p->Init(aChannelId, this);
+  return p->Init(aChannelId);
 }
 
 

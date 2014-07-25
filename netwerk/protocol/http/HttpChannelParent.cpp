@@ -32,6 +32,9 @@
 #include "nsIOService.h"
 #include "nsICachingChannel.h"
 
+#include "mozilla/dom/ContentParent.h"
+#include "mozilla/net/PHttpRetargetChannelParent.h"
+#include "mozilla/dom/ContentParent.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
@@ -96,14 +99,14 @@ HttpChannelParent::Init(const HttpChannelCreationArgs& aArgs)
   case HttpChannelCreationArgs::THttpChannelOpenArgs:
   {
     const HttpChannelOpenArgs& a = aArgs.get_HttpChannelOpenArgs();
-    return DoAsyncOpen(a.uri(), a.original(), a.doc(), a.referrer(),
+    return DoAsyncOpen1(a.uri(), a.original(), a.doc(), a.referrer(),
                        a.apiRedirectTo(), a.loadFlags(), a.requestHeaders(),
                        a.requestMethod(), a.uploadStream(),
                        a.uploadStreamHasHeaders(), a.priority(),
                        a.redirectionLimit(), a.allowPipelining(), a.allowSTS(),
                        a.forceAllowThirdPartyCookie(), a.resumeAt(),
                        a.startPos(), a.entityID(), a.chooseApplicationCache(),
-                       a.appCacheClientID(), a.allowSpdy(), a.fds(),
+                       a.appCacheClientID(), a.allowSpdy(), a.fds(), a.channelId(),
                        a.requestingPrincipalInfo(), a.securityFlags(),
                        a.contentPolicyType());
   }
@@ -167,7 +170,7 @@ HttpChannelParent::GetInterface(const nsIID& aIID, void **result)
 //-----------------------------------------------------------------------------
 
 bool
-HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
+HttpChannelParent::DoAsyncOpen1(  const URIParams&           aURI,
                                  const OptionalURIParams&   aOriginalURI,
                                  const OptionalURIParams&   aDocURI,
                                  const OptionalURIParams&   aReferrerURI,
@@ -189,6 +192,7 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
                                  const nsCString&           appCacheClientID,
                                  const bool&                allowSpdy,
                                  const OptionalFileDescriptorSet& aFds,
+                                 const uint32_t             aChannelID,
                                  const ipc::PrincipalInfo&  aRequestingPrincipalInfo,
                                  const uint32_t&            aSecurityFlags,
                                  const uint32_t&            aContentPolicyType)
@@ -349,6 +353,31 @@ HttpChannelParent::DoAsyncOpen(  const URIParams&           aURI,
       appCacheChan->SetChooseApplicationCache(chooseAppCache);
     }
   }
+
+  this->SetChannelID(aChannelID);
+
+  // Find the reference to the HttpRetargetChannelParent in the
+  // mHttpRetargetChannels hashtable, that resides in ContentParent
+  ContentParent* contentParent =
+    static_cast<ContentParent*>(this->Manager()->Manager());
+  PHttpRetargetChannelParent* httpRetargetChannel = contentParent->GetHttpRetargetChannel(this->mChannelID);
+  // | httpRetargetChannel | is nullptr if there is no entry in the hashtable
+  // corresponding to the given key.
+
+  if (httpRetargetChannel) {
+    DoAsyncOpen2(httpRetargetChannel);
+  } else {
+    contentParent->SetMustCallAsyncOpen(true);
+  }
+
+  return true;
+}
+
+// TODO: need to debug this to see if it behaves correctly
+bool
+HttpChannelParent::DoAsyncOpen2(const PHttpRetargetChannelParent* aHttpRetargetChannelParent)
+{
+  nsresult rv;
 
   rv = mChannel->AsyncOpen(mParentListener, nullptr);
   if (NS_FAILED(rv))
@@ -704,9 +733,27 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
 
   MOZ_RELEASE_ASSERT(!mDivertingFromChild,
     "Cannot call OnStopRequest if diverting is set!");
+  ResourceTimingStruct timing;
+  mChannel->GetDomainLookupStart(&timing.domainLookupStart);
+  mChannel->GetDomainLookupEnd(&timing.domainLookupEnd);
+  mChannel->GetConnectStart(&timing.connectStart);
+  mChannel->GetConnectEnd(&timing.connectEnd);
+  mChannel->GetRequestStart(&timing.requestStart);
+  mChannel->GetResponseStart(&timing.responseStart);
+  mChannel->GetResponseEnd(&timing.responseEnd);
+  mChannel->GetAsyncOpen(&timing.fetchStart);
+  mChannel->GetRedirectStart(&timing.redirectStart);
+  mChannel->GetRedirectEnd(&timing.redirectEnd);
 
-  if (mIPCClosed || !SendOnStopRequest(aStatusCode))
+  // Delete the correponding entry from
+  // ContentParent.mHttpRetargetChannels
+  ContentParent* contentParent =
+    static_cast<ContentParent*>(this->Manager()->Manager());
+  contentParent->RemoveHttpRetargetChannel(this->mChannelID);
+
+  if (mIPCClosed || !SendOnStopRequest(aStatusCode, timing))
     return NS_ERROR_UNEXPECTED;
+
   return NS_OK;
 }
 

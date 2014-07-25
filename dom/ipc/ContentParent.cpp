@@ -211,7 +211,8 @@ using namespace mozilla::layers;
 using namespace mozilla::net;
 using namespace mozilla::jsipc;
 using namespace mozilla::widget;
-using namespace mozilla::net;
+
+typedef mozilla::net::PHttpRetargetChannelParent PHttpRetargetChannelParent;
 
 #ifdef ENABLE_TESTS
 
@@ -1893,6 +1894,7 @@ ContentParent::ContentParent(mozIApplication* aApp,
     InitInternal(aInitialPriority,
                  true, /* Setup off-main thread compositing */
                  true  /* Send registered chrome */);
+
 }
 
 #ifdef MOZ_NUWA_PROCESS
@@ -1970,6 +1972,7 @@ ContentParent::ContentParent(ContentParent* aTemplate,
     InitInternal(priority,
                  false, /* Setup Off-main thread compositing */
                  false  /* Send registered chrome */);
+
 }
 #endif  // MOZ_NUWA_PROCESS
 
@@ -4085,7 +4088,19 @@ ContentParent::NotifyUpdatedDictionaries()
 ContentParent::AddHttpRetargetChannel(uint32_t aKey,
                                       PHttpRetargetChannelParent* aData)
 {
-   mHttpRetargetChannels.Put(aKey, aData);
+  mHttpRetargetChannels.Put(aKey, aData);
+}
+
+PHttpRetargetChannelParent*
+ContentParent::GetHttpRetargetChannel(uint32_t aKey)
+{
+  return mHttpRetargetChannels.Get(aKey);
+}
+
+void
+ContentParent::RemoveHttpRetargetChannel(uint32_t aKey)
+{
+  mHttpRetargetChannels.Remove(aKey);
 }
 
 } // namespace dom

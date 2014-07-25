@@ -21,7 +21,7 @@
 #include "nsIAuthPromptProvider.h"
 #include "mozilla/net/PHttpRetargetChannelParent.h"
 
-using namespace mozilla::net;
+typedef mozilla::net::PHttpRetargetChannelParent PHttpRetargetChannelParent;
 
 class nsICacheEntry;
 class nsIAssociatedContentSecurity;
@@ -76,12 +76,17 @@ public:
   // Called asynchronously from FailDiversion.
   void NotifyDiversionFailed(nsresult aErrorCode, bool aSkipResume = true);
 
+  void SetChannelID(uint32_t channelID) { mChannelID = channelID; }
+  uint32_t GetChannelID() { return mChannelID; }
+
+  bool DoAsyncOpen2(const PHttpRetargetChannelParent* aHttpRetargetChannelParent);
+
 protected:
   // used to connect redirected-to channel in parent with just created
   // ChildChannel.  Used during redirects.
   bool ConnectChannel(const uint32_t& channelId);
 
-  bool DoAsyncOpen(const URIParams&           uri,
+  bool DoAsyncOpen1(const URIParams&           uri,
                    const OptionalURIParams&   originalUri,
                    const OptionalURIParams&   docUri,
                    const OptionalURIParams&   referrerUri,
@@ -103,6 +108,7 @@ protected:
                    const nsCString&           appCacheClientID,
                    const bool&                allowSpdy,
                    const OptionalFileDescriptorSet& aFds,
+                   const uint32_t             aChannelID,
                    const ipc::PrincipalInfo&  aRequestingPrincipalInfo,
                    const uint32_t&            aSecurityFlags,
                    const uint32_t&            aContentPolicyType);
@@ -183,7 +189,9 @@ private:
 
   // A reference to the coresponding PHttpRetargetChannel actor. The reference
   // is looked up in the mHttpRetargetChannels hashtable.
-  PHttpRetargetChannel* mHttpRetargetParent;
+  PHttpRetargetChannelParent* mHttpRetargetParent;
+
+  uint32_t mChannelID;
 };
 
 } // namespace net
