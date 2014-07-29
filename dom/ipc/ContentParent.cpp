@@ -128,6 +128,7 @@
 #include "prio.h"
 #include "private/pprio.h"
 #include "mozilla/net/PHttpRetargetChannelParent.h"
+#include "mozilla/net/PHttpChannelParent.h"
 
 #if defined(ANDROID) || defined(LINUX)
 #include "nsSystemInfo.h"
@@ -213,6 +214,7 @@ using namespace mozilla::jsipc;
 using namespace mozilla::widget;
 
 typedef mozilla::net::PHttpRetargetChannelParent PHttpRetargetChannelParent;
+typedef mozilla::net::PHttpChannelParent PHttpChannelParent;
 
 #ifdef ENABLE_TESTS
 
@@ -1700,6 +1702,7 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
     mIdleListeners.Clear();
 
     mHttpRetargetChannels.Clear();
+    mHttpChannels.Clear();
 
     // If the child process was terminated due to a SIGKIL, ShutDownProcess
     // might not have been called yet.  We must call it to ensure that our
@@ -1837,6 +1840,7 @@ ContentParent::ContentParent(mozIApplication* aApp,
     , mOpener(aOpener)
     , mIsForBrowser(aIsForBrowser)
     , mIsNuwaProcess(aIsNuwaProcess)
+    , mMustCallAsyncOpen(false)
 {
     InitializeMembers();  // Perform common initialization.
 
@@ -4101,6 +4105,25 @@ void
 ContentParent::RemoveHttpRetargetChannel(uint32_t aKey)
 {
   mHttpRetargetChannels.Remove(aKey);
+}
+
+void
+ContentParent::AddHttpChannel(uint32_t aKey,
+                                      PHttpChannelParent* aData)
+{
+  mHttpChannels.Put(aKey, aData);
+}
+
+PHttpChannelParent*
+ContentParent::GetHttpChannel(uint32_t aKey)
+{
+  return mHttpChannels.Get(aKey);
+}
+
+void
+ContentParent::RemoveHttpChannel(uint32_t aKey)
+{
+  mHttpChannels.Remove(aKey);
 }
 
 } // namespace dom

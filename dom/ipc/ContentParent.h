@@ -25,10 +25,12 @@
 #include "nsIDOMGeoPositionCallback.h"
 #include "PermissionMessageUtils.h"
 #include "mozilla/net/PHttpRetargetChannelParent.h"
+#include "mozilla/net/PHttpChannelParent.h"
 
 #define CHILD_PROCESS_SHUTDOWN_MESSAGE NS_LITERAL_STRING("child-process-shutdown")
 
 typedef mozilla::net::PHttpRetargetChannelParent PHttpRetargetChannelParent;
+typedef mozilla::net::PHttpChannelParent PHttpChannelParent;
 
 class mozIApplication;
 class nsConsoleService;
@@ -291,6 +293,12 @@ public:
     virtual PHttpRetargetChannelParent* GetHttpRetargetChannel(uint32_t aKey);
 
     virtual void RemoveHttpRetargetChannel(uint32_t aKey);
+
+    virtual void AddHttpChannel(uint32_t aKey, PHttpChannelParent* aData);
+
+    virtual PHttpChannelParent* GetHttpChannel(uint32_t aKey);
+
+    virtual void RemoveHttpChannel(uint32_t aKey);
 
     void SetMustCallAsyncOpen(bool aMustCallAsyncOpen) {
       mMustCallAsyncOpen = aMustCallAsyncOpen;
@@ -741,18 +749,18 @@ private:
     bool mCalledKillHard;
 
     // If | mMustCallAsyncOpen | is true, then SendMyselfToMainThread::Run()
-    // should also call AsyncOpen
+    // needs to call AsyncOpen
     bool mMustCallAsyncOpen;
 
     friend class CrashReporterParent;
-    friend class SendMyselfToMainThread;
 
     nsRefPtr<nsConsoleService>  mConsoleService;
     nsConsoleService* GetConsoleService();
 
     nsDataHashtable<nsUint64HashKey, nsRefPtr<ParentIdleListener> > mIdleListeners;
 
-    nsDataHashtable<nsUint32HashKey, PHttpRetargetChannelParent* > mHttpRetargetChannels;
+    nsDataHashtable<nsUint32HashKey, PHttpRetargetChannelParent*> mHttpRetargetChannels;
+    nsDataHashtable<nsUint32HashKey, PHttpChannelParent*> mHttpChannels;
 
 #ifdef MOZ_X11
     // Dup of child's X socket, used to scope its resources to this

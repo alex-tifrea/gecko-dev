@@ -12,6 +12,7 @@
 #include "mozilla/net/PHttpChannelChild.h"
 #include "mozilla/net/HttpChannelChild.h"
 #include "nsIRequest.h"
+#include "mozilla/ipc/BackgroundChild.h"
 
 namespace mozilla {
 namespace net {
@@ -26,48 +27,48 @@ class HttpChannelChild;
 class OnTransportAndDataRunnable : public nsRunnable
 {
 public:
-    OnTransportAndDataRunnable(PHttpChannelChild* aHttpChannel,
-                            nsresult aChannelStatus, nsresult aTransportStatus,
-                            uint64_t aProgress, uint64_t aProgressMax,
-                            nsCString aData, uint64_t aOffset, uint32_t aCount)
-      : mHttpChannel(aHttpChannel), mChannelStatus(aChannelStatus),
-        mTransportStatus(aTransportStatus), mProgress(aProgress),
-        mProgressMax(aProgressMax), mData(aData), mOffset(aOffset),
-        mCount(aCount)
-    {
-        MOZ_ASSERT(!NS_IsMainThread());
-        MOZ_ASSERT(aHttpChannel);
-    }
+  OnTransportAndDataRunnable(PHttpChannelChild* aHttpChannel,
+                             nsresult aChannelStatus, nsresult aTransportStatus,
+                             uint64_t aProgress, uint64_t aProgressMax,
+                             nsCString aData, uint64_t aOffset, uint32_t aCount)
+    : mHttpChannel(aHttpChannel), mChannelStatus(aChannelStatus),
+      mTransportStatus(aTransportStatus), mProgress(aProgress),
+      mProgressMax(aProgressMax), mData(aData), mOffset(aOffset),
+      mCount(aCount)
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+    MOZ_ASSERT(aHttpChannel);
+  }
 
-    void Dispatch()
-    {
-        MOZ_ASSERT(!NS_IsMainThread());
+  void Dispatch()
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
 
-        nsresult rv = NS_DispatchToMainThread(this);
-        NS_ENSURE_SUCCESS_VOID(rv);
-    }
+    nsresult rv = NS_DispatchToMainThread(this);
+    NS_ENSURE_SUCCESS_VOID(rv);
+  }
 
-    NS_IMETHOD Run()
-    {
-        MOZ_ASSERT(!NS_IsMainThread());
-        MOZ_ASSERT(mHttpChannel);
+  NS_IMETHOD Run()
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+    MOZ_ASSERT(mHttpChannel);
 
-        HttpChannelChild* tmp = static_cast<HttpChannelChild*>(mHttpChannel);
-        tmp->OnTransportAndData(mChannelStatus, mTransportStatus,
-                                         mProgress, mProgressMax, mData,
-                                        mOffset, mCount);
-        return NS_OK;
-    }
+    HttpChannelChild* tmp = static_cast<HttpChannelChild*>(mHttpChannel);
+    tmp->OnTransportAndData(mChannelStatus, mTransportStatus,
+                            mProgress, mProgressMax, mData,
+                            mOffset, mCount);
+    return NS_OK;
+  }
 
 private:
-    PHttpChannelChild* mHttpChannel;
-    nsresult mChannelStatus;
-    nsresult mTransportStatus;
-    uint64_t mProgress;
-    uint64_t mProgressMax;
-    nsCString mData;
-    uint64_t mOffset;
-    uint32_t mCount;
+  PHttpChannelChild* mHttpChannel;
+  nsresult mChannelStatus;
+  nsresult mTransportStatus;
+  uint64_t mProgress;
+  uint64_t mProgressMax;
+  nsCString mData;
+  uint64_t mOffset;
+  uint32_t mCount;
 };
 
 bool
@@ -89,20 +90,29 @@ HttpRetargetChannelChild::RecvOnTransportAndData(const nsresult& channelStatus,
   return true;
 }
 
-HttpRetargetChannelChild::HttpRetargetChannelChild()
-{
-  MOZ_COUNT_CTOR(HttpRetargetChannelChild);
-}
-
 HttpRetargetChannelChild::HttpRetargetChannelChild(uint32_t aChannelId)
+  : mChannelId(aChannelId)
 {
   MOZ_COUNT_CTOR(HttpRetargetChannelChild);
-  mChannelId = aChannelId;
 }
 
 HttpRetargetChannelChild::~HttpRetargetChannelChild()
 {
   MOZ_COUNT_DTOR(HttpRetargetChannelChild);
+}
+
+nsresult
+HttpRetargetChannelChild::Init()
+{
+  PBackgroundChild* backgroundChild = BackgroundChild::GetForCurrentThread();
+
+  if (backgroundChild)
+    backgroundChild->SendPHttpRetargetChannelConstructor(this, mChannelId);
+  else {
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
 }
 
 } // namespace net

@@ -149,9 +149,6 @@ private:
   // If ResumeAt is called before AsyncOpen, we need to send extra data upstream
   bool mSendResumeAt;
 
-  // The PBackground actor
-  PBackgroundChild* mBackgroundChild;
-
   bool mIPCOpen;
   bool mKeptAlive;            // IPC kept open, but only for security info
   nsRefPtr<ChannelEventQueue> mEventQ;

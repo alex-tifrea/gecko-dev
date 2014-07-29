@@ -42,17 +42,17 @@ class ContentParent;
 // Content actor on the main thread
 //-----------------------------------------------------------------------------
 
-class SendMyselfToMainThread : public nsRunnable
+class AddToHashtableRunnable : public nsRunnable
 {
 public:
-  SendMyselfToMainThread(already_AddRefed<ContentParent> aContentParent,
+  AddToHashtableRunnable(already_AddRefed<ContentParent> aContentParent,
                          PHttpRetargetChannelParent* aHttpRetargetChannelParent)
-    :  mContentParent(aContentParent),
-       mHttpRetargetChannelParent(aHttpRetargetChannelParent)
-
+    :  mContentParent(aContentParent)
   {
     AssertIsOnBackgroundThread();
     MOZ_ASSERT(mContentParent);
+    mHttpRetargetChannelParent =
+      static_cast<HttpRetargetChannelParent*>(aHttpRetargetChannelParent);
   }
 
   void Dispatch()
@@ -68,40 +68,32 @@ public:
     AssertIsOnMainThread();
     MOZ_ASSERT(mContentParent);
 
-    HttpRetargetChannelParent* tmpHttpRetarget =
-        static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannelParent);
+    mContentParent->AddHttpRetargetChannel(mHttpRetargetChannelParent->GetChannelId(),
+                                           mHttpRetargetChannelParent);
 
-    mContentParent->AddHttpRetargetChannel(/* key */ tmpHttpRetarget->GetChannelId(),
-                                           /* value */ mHttpRetargetChannelParent);
-
-    // TODO: need to debug this to see if it ever gets to this part of the code
     if (mContentParent->GetMustCallAsyncOpen()) {
       // | HttpChannelParent::DoAsyncOpen1 | could not call
       // | HttpChannelParent::DoAsyncOpen2 |; that's why it will be called now.
 
-      // TODO: I assumed that a | ContentParent | actor manages only one
-      // instance of | NeckoParent |
-      const InfallibleTArray<PHttpChannelParent*>& channels =
-        mContentParent->ManagedPNeckoParent()[0]->ManagedPHttpChannelParent();
+      HttpChannelParent* httpChannel =
+        static_cast<HttpChannelParent*>(mContentParent->GetHttpChannel(
+              mHttpRetargetChannelParent->GetChannelId()));
 
-      // Searching through the HttpChannelParent actors for the one
-      // corresponding to the current HttpRetargetChannelParent instance
-      for (uint32_t i = 0; i < channels.Length(); i++) {
-        HttpChannelParent* curr_channel = static_cast<HttpChannelParent*>(channels[i]);
-        if (curr_channel->GetChannelID() ==
-            static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannelParent)->GetChannelId()) {
-          curr_channel->DoAsyncOpen2(mHttpRetargetChannelParent);
-        }
-      }
+      if (httpChannel)
+        httpChannel->DoAsyncOpen2(mHttpRetargetChannelParent);
+      else
+        return NS_ERROR_FAILURE;
+
+      mContentParent->SetMustCallAsyncOpen(false);
     }
 
-    mContentParent = NULL;
+    mContentParent = nullptr;
     return NS_OK;
   }
 
 private:
   nsRefPtr<ContentParent> mContentParent;
-  PHttpRetargetChannelParent* mHttpRetargetChannelParent;
+  HttpRetargetChannelParent* mHttpRetargetChannelParent;
 };
 
 } // namespace mozilla
@@ -140,8 +132,8 @@ HttpRetargetChannelParent::Init(uint32_t aChannelId)
   PBackgroundParent* backgroundParent = this->Manager();
 
   mChannelId = aChannelId;
-  nsRefPtr<SendMyselfToMainThread> runnable =
-    new SendMyselfToMainThread(BackgroundParent::GetContentParent(backgroundParent),
+  nsRefPtr<AddToHashtableRunnable> runnable =
+    new AddToHashtableRunnable(BackgroundParent::GetContentParent(backgroundParent),
                                this);
   runnable->Dispatch();
   return true;

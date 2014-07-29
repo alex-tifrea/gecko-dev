@@ -25,10 +25,11 @@ public:
                                       const uint64_t& offset,
                                       const uint32_t& count);
 
-  HttpRetargetChannelChild();
   HttpRetargetChannelChild(uint32_t aChannelId);
   ~HttpRetargetChannelChild();
   uint32_t GetChannelId() { return mChannelId; }
+
+  virtual nsresult Init();
 
 private:
   uint32_t mChannelId;

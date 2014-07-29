@@ -166,8 +166,8 @@ nsHttpHandler::nsHttpHandler()
     , mPipeliningOverSSL(false)
     , mEnforceAssocReq(false)
     , mLastUniqueID(NowInSeconds())
-    , mLastChannelID(0)
     , mSessionStartTime(0)
+    , mLastChannelID(0)
     , mLegacyAppName("Mozilla")
     , mLegacyAppVersion("5.0")
     , mProduct("Gecko")
@@ -1712,6 +1712,11 @@ nsHttpHandler::NewProxiedChannel(nsIURI *uri,
         uint32_t channelID = GenerateChannelID();
         httpRetargetChannel = new HttpRetargetChannelChild(channelID);
         httpChannel = new HttpChannelChild(channelID);
+
+        rv = httpRetargetChannel->Init();
+        if (NS_FAILED(rv))
+            return rv;
+
     } else {
         httpChannel = new nsHttpChannel();
     }

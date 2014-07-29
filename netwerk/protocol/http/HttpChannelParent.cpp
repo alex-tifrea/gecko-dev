@@ -367,13 +367,17 @@ HttpChannelParent::DoAsyncOpen1(  const URIParams&           aURI,
   if (httpRetargetChannel) {
     DoAsyncOpen2(httpRetargetChannel);
   } else {
+    // If the HttpRetargetChannelParent actor was not instantiated yet, we add
+    // the HttpChannelParent to a new hashtable in order for it to be accessible
+    // from the HttpRetargetChannelParent actor who will try to call
+    // DoAsyncOpen2 on it.
+    contentParent->AddHttpChannel(this->GetChannelId(), this);
     contentParent->SetMustCallAsyncOpen(true);
   }
 
   return true;
 }
 
-// TODO: need to debug this to see if it behaves correctly
 bool
 HttpChannelParent::DoAsyncOpen2(const PHttpRetargetChannelParent* aHttpRetargetChannelParent)
 {

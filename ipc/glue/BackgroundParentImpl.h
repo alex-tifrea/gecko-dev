@@ -9,8 +9,6 @@
 #include "mozilla/ipc/PBackgroundParent.h"
 #include "mozilla/net/PHttpRetargetChannelParent.h"
 
-using namespace mozilla::net;
-
 namespace mozilla {
 namespace ipc {
 
@@ -67,11 +65,11 @@ protected:
   AllocPHttpRetargetChannelParent(const uint32_t& channelId) MOZ_OVERRIDE;
 
   virtual bool
-  RecvPHttpRetargetChannelConstructor(PHttpRetargetChannelParent* aActor,
+  RecvPHttpRetargetChannelConstructor(mozilla::net::PHttpRetargetChannelParent* aActor,
                                       const uint32_t& aChannelId) MOZ_OVERRIDE;
 
   virtual bool
-  DeallocPHttpRetargetChannelParent(PHttpRetargetChannelParent* aActor) MOZ_OVERRIDE;
+  DeallocPHttpRetargetChannelParent(mozilla::net::PHttpRetargetChannelParent* aActor) MOZ_OVERRIDE;
 };
 
 } // namespace ipc

@@ -55,8 +55,6 @@ HttpChannelChild::HttpChannelChild(uint32_t aChannelId)
 {
   LOG(("Creating HttpChannelChild @%x\n", this));
 
-  mBackgroundChild = BackgroundChild::GetForCurrentThread();
-
   mChannelId = aChannelId;
   mChannelCreationTime = PR_Now();
   mChannelCreationTimestamp = TimeStamp::Now();
@@ -990,11 +988,6 @@ HttpChannelChild::ConnectParent(uint32_t id)
         SendPHttpChannelConstructor(this, browser,
                                     IPC::SerializedLoadContext(this),
                                     connectArgs)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  if (!mBackgroundChild->
-        SendPHttpRetargetChannelConstructor(mChannelId)) {
     return NS_ERROR_FAILURE;
   }
 

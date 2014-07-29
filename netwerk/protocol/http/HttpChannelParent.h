@@ -77,7 +77,7 @@ public:
   void NotifyDiversionFailed(nsresult aErrorCode, bool aSkipResume = true);
 
   void SetChannelID(uint32_t channelID) { mChannelID = channelID; }
-  uint32_t GetChannelID() { return mChannelID; }
+  uint32_t GetChannelId() { return mChannelID; }
 
   bool DoAsyncOpen2(const PHttpRetargetChannelParent* aHttpRetargetChannelParent);
 
