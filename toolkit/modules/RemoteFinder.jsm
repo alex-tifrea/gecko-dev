@@ -16,8 +16,11 @@ function RemoteFinder(browser) {
   this._listeners = [];
   this._searchString = null;
 
+  this._selectionString = null;
+
   this._browser.messageManager.addMessageListener("Finder:Result", this);
   this._browser.messageManager.addMessageListener("Finder:MatchesResult", this);
+  this._browser.messageManager.addMessageListener("Finder:SearchSelection", this);
   this._browser.messageManager.sendAsyncMessage("Finder:Initialize");
 }
 
@@ -37,12 +40,14 @@ RemoteFinder.prototype = {
       this._searchString = aMessage.data.searchString;
     }
 
-    // The parent can receive either one of the two types of message.
+    // The parent can receive one of the following types of messages.
     for (let l of this._listeners) {
       if (aMessage.name == "Finder:Result") {
         l.onFindResult(aMessage.data);
       } else if (aMessage.name == "Finder:MatchesResult") {
         l.onMatchesCountResult(aMessage.data);
+      } else if (aMessage.name == "Finder:SearchSelection") {
+        l.onFindSelectionUpdate(aMessage.data);
       }
     }
   },
@@ -97,6 +102,10 @@ RemoteFinder.prototype = {
                                                   { searchString: aSearchString,
                                                     matchLimit: aMatchLimit,
                                                     linksOnly: aLinksOnly });
+  },
+
+  setSearchStringToSelection: function () {
+    this._browser.messageManager.sendAsyncMessage("Finder:SearchSelection");
   }
 }
 
@@ -121,7 +130,8 @@ RemoteFinderListener.prototype = {
     "Finder:RemoveSelection",
     "Finder:FocusContent",
     "Finder:KeyPress",
-    "Finder:MatchesCount"
+    "Finder:MatchesCount",
+    "Finder:SearchSelection"
   ],
 
   onFindResult: function (aData) {
@@ -132,6 +142,10 @@ RemoteFinderListener.prototype = {
   // it passes them forward to the parent.
   onMatchesCountResult: function (aData) {
     this._global.sendAsyncMessage("Finder:MatchesResult", aData);
+  },
+
+  onFindSelectionUpdate: function (aSelectionString) {
+    this._global.sendAsyncMessage("Finder:SearchSelection", aSelectionString);
   },
 
   //XXXmikedeboer-20131016: implement |shouldFocusContent| here to mitigate
@@ -174,6 +188,10 @@ RemoteFinderListener.prototype = {
 
       case "Finder:MatchesCount":
         this._finder.requestMatchesCount(data.searchString, data.matchLimit, data.linksOnly);
+        break;
+
+      case "Finder:SearchSelection":
+        let searchString = this._finder.setSearchStringToSelection();
         break;
     }
   }

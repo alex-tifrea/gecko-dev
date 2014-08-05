@@ -31,6 +31,11 @@ function Finder(docShell) {
   this._previousLink = null;
   this._searchString = null;
 
+  // | _selectionString | is saves the value of the selected string; it will be
+  // used later in findbar.xml in | onFindSelectionUpdate | to update the
+  // findbar with the new search string
+  this._selectionString = null;
+
   docShell.QueryInterface(Ci.nsIInterfaceRequestor)
           .getInterface(Ci.nsIWebProgress)
           .addProgressListener(this, Ci.nsIWebProgress.NOTIFY_LOCATION);
@@ -171,7 +176,14 @@ Finder.prototype = {
       return null;
 
     this.clipboardSearchString = searchString;
-    return searchString;
+
+    for (let l of this._listeners) {
+      try {
+        l.onFindSelectionUpdate(searchString);
+      } catch (ex) {}
+    }
+
+    this._selectionString = searchString;
   },
 
   highlight: function (aHighlight, aWord) {
