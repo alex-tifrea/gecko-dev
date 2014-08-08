@@ -209,6 +209,7 @@ private:
   friend class DeleteSelfEvent;
   friend class HttpAsyncAborter<HttpChannelChild>;
   friend class OnTransportAndDataRunnable;
+  friend class HttpRetargetChannelChild;
 };
 
 //-----------------------------------------------------------------------------

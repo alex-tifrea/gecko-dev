@@ -1840,7 +1840,6 @@ ContentParent::ContentParent(mozIApplication* aApp,
     , mOpener(aOpener)
     , mIsForBrowser(aIsForBrowser)
     , mIsNuwaProcess(aIsNuwaProcess)
-    , mMustCallAsyncOpen(false)
 {
     InitializeMembers();  // Perform common initialization.
 
@@ -1898,7 +1897,6 @@ ContentParent::ContentParent(mozIApplication* aApp,
     InitInternal(aInitialPriority,
                  true, /* Setup off-main thread compositing */
                  true  /* Send registered chrome */);
-
 }
 
 #ifdef MOZ_NUWA_PROCESS
@@ -1976,7 +1974,6 @@ ContentParent::ContentParent(ContentParent* aTemplate,
     InitInternal(priority,
                  false, /* Setup Off-main thread compositing */
                  false  /* Send registered chrome */);
-
 }
 #endif  // MOZ_NUWA_PROCESS
 

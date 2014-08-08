@@ -1692,7 +1692,6 @@ nsHttpHandler::NewProxiedChannel(nsIURI *uri,
                                  nsIChannel **result)
 {
     nsRefPtr<HttpBaseChannel> httpChannel;
-    HttpRetargetChannelChild* httpRetargetChannel;
 
     LOG(("nsHttpHandler::NewProxiedChannel [proxyInfo=%p]\n",
         givenProxyInfo));
@@ -1710,10 +1709,15 @@ nsHttpHandler::NewProxiedChannel(nsIURI *uri,
 
     if (IsNeckoChild()) {
         uint32_t channelID = GenerateChannelID();
-        httpRetargetChannel = new HttpRetargetChannelChild(channelID);
+        HttpRetargetChannelChild* httpRetargetChannel
+            = new HttpRetargetChannelChild(channelID);
         httpChannel = new HttpChannelChild(channelID);
 
-        rv = httpRetargetChannel->Init();
+        // IPDL now owns this object (more specifically, the actor in the parent
+        // process is now created and the connection between the two actors is
+        // now established)
+        nsCOMPtr<nsIHttpChannel> tmp = httpChannel;
+        rv = httpRetargetChannel->Init(do_QueryInterface(tmp));
         if (NS_FAILED(rv))
             return rv;
 

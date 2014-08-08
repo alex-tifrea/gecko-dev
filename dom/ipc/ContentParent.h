@@ -16,6 +16,7 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/StaticPtr.h"
 
+#include "nsTHashtable.h"
 #include "nsDataHashtable.h"
 #include "nsInterfaceHashtable.h"
 #include "nsFrameMessageManager.h"
@@ -28,9 +29,6 @@
 #include "mozilla/net/PHttpChannelParent.h"
 
 #define CHILD_PROCESS_SHUTDOWN_MESSAGE NS_LITERAL_STRING("child-process-shutdown")
-
-typedef mozilla::net::PHttpRetargetChannelParent PHttpRetargetChannelParent;
-typedef mozilla::net::PHttpChannelParent PHttpChannelParent;
 
 class mozIApplication;
 class nsConsoleService;
@@ -288,23 +286,30 @@ public:
         PBlobParent* aActor,
         const BlobConstructorParams& aParams) MOZ_OVERRIDE;
 
-    virtual void AddHttpRetargetChannel(uint32_t aKey, PHttpRetargetChannelParent* aData);
+    virtual void AddHttpRetargetChannel(uint32_t aKey,
+                                        mozilla::net::PHttpRetargetChannelParent* aData);
 
-    virtual PHttpRetargetChannelParent* GetHttpRetargetChannel(uint32_t aKey);
+    virtual mozilla::net::PHttpRetargetChannelParent* GetHttpRetargetChannel(uint32_t aKey);
 
     virtual void RemoveHttpRetargetChannel(uint32_t aKey);
 
-    virtual void AddHttpChannel(uint32_t aKey, PHttpChannelParent* aData);
+    virtual void AddHttpChannel(uint32_t aKey, mozilla::net::PHttpChannelParent* aData);
 
-    virtual PHttpChannelParent* GetHttpChannel(uint32_t aKey);
+    virtual mozilla::net::PHttpChannelParent* GetHttpChannel(uint32_t aKey);
 
     virtual void RemoveHttpChannel(uint32_t aKey);
 
-    void SetMustCallAsyncOpen(bool aMustCallAsyncOpen) {
-      mMustCallAsyncOpen = aMustCallAsyncOpen;
+    void SetMustCallAsyncOpen(uint32_t aChannelId) {
+      mMustCallAsyncOpen.PutEntry(aChannelId);
     }
 
-    bool GetMustCallAsyncOpen() { return mMustCallAsyncOpen; }
+    void ResetMustCallAsyncOpen(uint32_t aChannelId) {
+      mMustCallAsyncOpen.RemoveEntry(aChannelId);
+    }
+
+    bool GetMustCallAsyncOpen(uint32_t aChannelId) {
+      return mMustCallAsyncOpen.GetEntry(aChannelId) ? true : false;
+    }
 
 protected:
     void OnChannelConnected(int32_t pid) MOZ_OVERRIDE;
@@ -748,9 +753,11 @@ private:
     bool mCalledCloseWithError;
     bool mCalledKillHard;
 
-    // If | mMustCallAsyncOpen | is true, then SendMyselfToMainThread::Run()
-    // needs to call AsyncOpen
-    bool mMustCallAsyncOpen;
+    // If | mMustCallAsyncOpen | is true, then AddToHashtableRunnable::Run()
+    // needs to call AsyncOpen for a given http channel
+    // TODO: this may not be the best solution, but I will leave it like this
+    // for now
+    nsTHashtable<nsUint32HashKey> mMustCallAsyncOpen;
 
     friend class CrashReporterParent;
 
@@ -759,8 +766,9 @@ private:
 
     nsDataHashtable<nsUint64HashKey, nsRefPtr<ParentIdleListener> > mIdleListeners;
 
-    nsDataHashtable<nsUint32HashKey, PHttpRetargetChannelParent*> mHttpRetargetChannels;
-    nsDataHashtable<nsUint32HashKey, PHttpChannelParent*> mHttpChannels;
+    nsDataHashtable<nsUint32HashKey,
+                    mozilla::net::PHttpRetargetChannelParent*> mHttpRetargetChannels;
+    nsDataHashtable<nsUint32HashKey, mozilla::net::PHttpChannelParent*> mHttpChannels;
 
 #ifdef MOZ_X11
     // Dup of child's X socket, used to scope its resources to this

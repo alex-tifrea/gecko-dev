@@ -8,8 +8,10 @@
 #ifndef _HttpRetargetChannelChild_h
 #define _HttpRetargetChannelChild_h
 
+#include "mozilla/net/HttpChannelChild.h"
 #include "mozilla/net/PHttpRetargetChannelChild.h"
-#include "nsIRequest.h"
+//#include "nsIRequest.h"
+// #include "mozilla/net/HttpBaseChannel.h"
 
 namespace mozilla {
 namespace net {
@@ -17,6 +19,9 @@ class HttpRetargetChannelChild MOZ_FINAL :
   public PHttpRetargetChannelChild
 {
 public:
+  HttpRetargetChannelChild(uint32_t aChannelId);
+  ~HttpRetargetChannelChild();
+
   virtual bool RecvOnTransportAndData(const nsresult& channelStatus,
                                       const nsresult& transportStatus,
                                       const uint64_t& progress,
@@ -25,14 +30,13 @@ public:
                                       const uint64_t& offset,
                                       const uint32_t& count);
 
-  HttpRetargetChannelChild(uint32_t aChannelId);
-  ~HttpRetargetChannelChild();
   uint32_t GetChannelId() { return mChannelId; }
 
-  virtual nsresult Init();
+  virtual nsresult Init(HttpChannelChild* aHttpChannel);
 
 private:
   uint32_t mChannelId;
+//  HttpChannelChild* mHttpChannel;
 };
 
 } // namespace net

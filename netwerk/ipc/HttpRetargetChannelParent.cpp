@@ -20,6 +20,7 @@
 
 using namespace mozilla::dom;
 using namespace mozilla::net;
+using namespace mozilla::ipc;
 
 namespace {
 
@@ -68,23 +69,23 @@ public:
     AssertIsOnMainThread();
     MOZ_ASSERT(mContentParent);
 
-    mContentParent->AddHttpRetargetChannel(mHttpRetargetChannelParent->GetChannelId(),
+    uint32_t channelId = mHttpRetargetChannelParent->GetChannelId();
+    mContentParent->AddHttpRetargetChannel(channelId,
                                            mHttpRetargetChannelParent);
 
-    if (mContentParent->GetMustCallAsyncOpen()) {
+    if (mContentParent->GetMustCallAsyncOpen(channelId)) {
       // | HttpChannelParent::DoAsyncOpen1 | could not call
       // | HttpChannelParent::DoAsyncOpen2 |; that's why it will be called now.
 
       HttpChannelParent* httpChannel =
-        static_cast<HttpChannelParent*>(mContentParent->GetHttpChannel(
-              mHttpRetargetChannelParent->GetChannelId()));
+        static_cast<HttpChannelParent*>(mContentParent->GetHttpChannel(channelId));
 
       if (httpChannel)
         httpChannel->DoAsyncOpen2(mHttpRetargetChannelParent);
       else
         return NS_ERROR_FAILURE;
 
-      mContentParent->SetMustCallAsyncOpen(false);
+      mContentParent->ResetMustCallAsyncOpen(channelId);
     }
 
     mContentParent = nullptr;

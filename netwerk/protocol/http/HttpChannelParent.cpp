@@ -372,7 +372,7 @@ HttpChannelParent::DoAsyncOpen1(  const URIParams&           aURI,
     // from the HttpRetargetChannelParent actor who will try to call
     // DoAsyncOpen2 on it.
     contentParent->AddHttpChannel(this->GetChannelId(), this);
-    contentParent->SetMustCallAsyncOpen(true);
+    contentParent->SetMustCallAsyncOpen(this->GetChannelId());
   }
 
   return true;
