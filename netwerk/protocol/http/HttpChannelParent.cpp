@@ -135,7 +135,8 @@ NS_IMPL_ISUPPORTS(HttpChannelParent,
                   nsIParentChannel,
                   nsIAuthPromptProvider,
                   nsIParentRedirectingChannel,
-                  nsIThreadRetargetableStreamListener)
+                  nsIThreadRetargetableStreamListener,
+                  nsPIThreadRetargetableProgressSink)
 
 //-----------------------------------------------------------------------------
 // HttpChannelParent::nsIInterfaceRequestor

@@ -64,6 +64,7 @@
 #include "nsPerformance.h"
 #include "CacheObserver.h"
 #include "mozilla/Telemetry.h"
+#include "nsPIThreadRetargetableProgressSink.h"
 
 namespace mozilla { namespace net {
 
@@ -226,6 +227,7 @@ nsHttpChannel::nsHttpChannel()
     , mIsPartialRequest(0)
     , mHasAutoRedirectVetoNotifier(0)
     , mDidReval(false)
+    , mRetargetableProgressSink(nullptr)
 {
     LOG(("Creating nsHttpChannel [this=%p]\n", this));
     mChannelCreationTime = PR_Now();
@@ -964,6 +966,11 @@ nsHttpChannel::CallOnStartRequest()
             CloseOfflineCacheEntry();
         }
     }
+
+    if (!mProgressSink)
+        GetCallback(mProgressSink);
+
+    mRetargetableProgressSink = do_QueryInterface(mProgressSink);
 
     return NS_OK;
 }
@@ -5268,6 +5275,8 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
 
     ReleaseListeners();
 
+    mRetargetableProgressSink = nullptr;
+
     return NS_OK;
 }
 
@@ -5355,7 +5364,7 @@ nsHttpChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
             NS_WARNING("unexpected progress values - "
                        "is server exceeding content length?");
 
-        if (NS_IsMainThread() /* || progress sink expects to be off the main thread */) {
+        if (NS_IsMainThread() || mRetargetableProgressSink) {
             OnTransportStatus(nullptr, transportStatus, progress, progressMax);
         } else {
             nsresult rv = NS_DispatchToMainThread(
@@ -5484,10 +5493,10 @@ NS_IMETHODIMP
 nsHttpChannel::OnTransportStatus(nsITransport *trans, nsresult status,
                                  uint64_t progress, uint64_t progressMax)
 {
-    MOZ_ASSERT(NS_IsMainThread(), "Should be on main thread only");
     // cache the progress sink so we don't have to query for it each time.
-    if (!mProgressSink)
-        GetCallback(mProgressSink);
+    //     DEBUGGG
+//     if (!mProgressSink)
+//         GetCallback(mProgressSink);
 
     if (status == NS_NET_STATUS_CONNECTED_TO ||
         status == NS_NET_STATUS_WAITING_FOR) {

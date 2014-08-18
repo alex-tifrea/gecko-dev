@@ -140,6 +140,7 @@ EXPORTS += [
     'nsChannelProperties.h',
     'nsNetStrings.h',
     'nsNetUtil.h',
+    'nsPIThreadRetargetableProgressSink.h',
     'nsReadLine.h',
     'nsStreamListenerWrapper.h',
     'nsURIHashKey.h',

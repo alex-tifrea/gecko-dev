@@ -463,7 +463,7 @@ HttpChannelChild::OnTransportAndData(const nsresult& channelStatus,
   //   dupe'd from nsHttpChannel
 
   //TODO: DEBUGGGGG
-  //mProgressSink = nullptr;
+//   mProgressSink = nullptr;
   if (mProgressSink && NS_SUCCEEDED(mStatus) && mIsPending &&
       !(mLoadFlags & LOAD_BACKGROUND))
   {

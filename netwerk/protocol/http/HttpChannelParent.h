@@ -21,6 +21,7 @@
 #include "nsIAuthPromptProvider.h"
 #include "mozilla/net/PHttpRetargetChannelParent.h"
 #include "nsIThreadRetargetableStreamListener.h"
+#include "nsPIThreadRetargetableProgressSink.h"
 
 typedef mozilla::net::PHttpRetargetChannelParent PHttpRetargetChannelParent;
 
@@ -47,6 +48,7 @@ class HttpChannelParent : public PHttpChannelParent
                         , public nsIAuthPromptProvider
                         , public DisconnectableParent
                         , public nsIThreadRetargetableStreamListener
+                        , public nsPIThreadRetargetableProgressSink
 {
   virtual ~HttpChannelParent();
 
@@ -60,6 +62,7 @@ public:
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSIAUTHPROMPTPROVIDER
   NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
+//   NS_DECL_NSPITHREADRETARGETABLEPROGRESSSINK
 
   HttpChannelParent(const PBrowserOrId& iframeEmbedding,
                     nsILoadContext* aLoadContext,

@@ -19,6 +19,7 @@
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsIThreadRetargetableRequest.h"
 #include "nsIThreadRetargetableStreamListener.h"
+#include "nsPIThreadRetargetableProgressSink.h"
 #include "nsWeakReference.h"
 #include "TimingStruct.h"
 #include "AutoClose.h"
@@ -121,6 +122,8 @@ public:
     NS_IMETHOD GetRequestStart(mozilla::TimeStamp *aRequestStart);
     NS_IMETHOD GetResponseStart(mozilla::TimeStamp *aResponseStart);
     NS_IMETHOD GetResponseEnd(mozilla::TimeStamp *aResponseEnd);
+
+    nsCOMPtr<nsPIThreadRetargetableProgressSink> mRetargetableProgressSink;
 
 public: /* internal necko use only */
 
