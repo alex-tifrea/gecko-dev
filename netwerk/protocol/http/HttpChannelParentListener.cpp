@@ -38,7 +38,8 @@ NS_IMPL_ISUPPORTS(HttpChannelParentListener,
                   nsIStreamListener,
                   nsIRequestObserver,
                   nsIChannelEventSink,
-                  nsIRedirectResultListener)
+                  nsIRedirectResultListener,
+                  nsIThreadRetargetableStreamListener)
 
 //-----------------------------------------------------------------------------
 // HttpChannelParentListener::nsIRequestObserver
@@ -265,6 +266,23 @@ HttpChannelParentListener::DivertTo(nsIStreamListener* aListener)
   mNextListener = aListener;
 
   return ResumeForDiversion();
+}
+
+//-----------------------------------------------------------------------------
+// HttpChannelParentListener::nsThreadRetargetableStreamListener
+//-----------------------------------------------------------------------------
+
+NS_IMETHODIMP
+HttpChannelParentListener::CheckListenerChain()
+{
+    NS_ASSERTION(NS_IsMainThread(), "Should be on main thread!");
+    nsresult rv = NS_OK;
+    nsCOMPtr<nsIThreadRetargetableStreamListener> retargetableListener =
+        do_QueryInterface(mNextListener, &rv);
+    if (retargetableListener) {
+        rv = retargetableListener->CheckListenerChain();
+    }
+    return rv;
 }
 
 }} // mozilla::net

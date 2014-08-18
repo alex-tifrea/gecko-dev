@@ -11,6 +11,7 @@
 #include "nsIInterfaceRequestor.h"
 #include "nsIChannelEventSink.h"
 #include "nsIRedirectResultListener.h"
+#include "nsIThreadRetargetableStreamListener.h"
 
 class nsIParentChannel;
 
@@ -23,6 +24,7 @@ class HttpChannelParentListener : public nsIInterfaceRequestor
                                  , public nsIChannelEventSink
                                  , public nsIRedirectResultListener
                                  , public nsIStreamListener
+                                 , public nsIThreadRetargetableStreamListener
 {
 public:
   NS_DECL_ISUPPORTS
@@ -31,6 +33,7 @@ public:
   NS_DECL_NSIREDIRECTRESULTLISTENER
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSISTREAMLISTENER
+  NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
 
   explicit HttpChannelParentListener(HttpChannelParent* aInitialChannel);
 

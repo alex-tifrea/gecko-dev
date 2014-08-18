@@ -8,10 +8,8 @@
 #ifndef _HttpRetargetChannelChild_h
 #define _HttpRetargetChannelChild_h
 
-#include "mozilla/net/HttpChannelChild.h"
+#include "mozilla/net/PHttpChannelChild.h"
 #include "mozilla/net/PHttpRetargetChannelChild.h"
-//#include "nsIRequest.h"
-// #include "mozilla/net/HttpBaseChannel.h"
 
 namespace mozilla {
 namespace net {
@@ -32,11 +30,11 @@ public:
 
   uint32_t GetChannelId() { return mChannelId; }
 
-  virtual nsresult Init(HttpChannelChild* aHttpChannel);
+  virtual nsresult Init(PHttpChannelChild* aHttpChannel);
 
 private:
   uint32_t mChannelId;
-//  HttpChannelChild* mHttpChannel;
+  PHttpChannelChild* mHttpChannel;
 };
 
 } // namespace net

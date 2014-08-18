@@ -5355,7 +5355,7 @@ nsHttpChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
             NS_WARNING("unexpected progress values - "
                        "is server exceeding content length?");
 
-        if (NS_IsMainThread()) {
+        if (NS_IsMainThread() /* || progress sink expects to be off the main thread */) {
             OnTransportStatus(nullptr, transportStatus, progress, progressMax);
         } else {
             nsresult rv = NS_DispatchToMainThread(

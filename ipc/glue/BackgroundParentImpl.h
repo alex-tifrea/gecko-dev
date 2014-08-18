@@ -62,6 +62,9 @@ protected:
                                   MOZ_OVERRIDE;
 
   virtual PHttpRetargetChannelParent*
+
+  virtual mozilla::net::PHttpRetargetChannelParent*
+
   AllocPHttpRetargetChannelParent(const uint32_t& channelId) MOZ_OVERRIDE;
 
   virtual bool

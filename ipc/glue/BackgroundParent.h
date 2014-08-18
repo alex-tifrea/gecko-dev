@@ -8,6 +8,7 @@
 #include "base/process.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ipc/Transport.h"
+#include "mozilla/StaticPtr.h"
 
 template <class> struct already_AddRefed;
 
@@ -64,6 +65,8 @@ public:
   // called on the background thread.
   static intptr_t
   GetRawContentParentForComparison(PBackgroundParent* aBackgroundActor);
+
+  static nsIThread* GetBackgroundThread();
 
 private:
   // Only called by ContentParent for cross-process actors.

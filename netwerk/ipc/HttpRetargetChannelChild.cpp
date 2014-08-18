@@ -6,12 +6,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "HttpRetargetChannelChild.h"
-//#include "nsThreadUtils.h"
-//#include "nsIInputStream.h"
-//#include "nsIStreamListener.h"
-//#include "mozilla/net/HttpBaseChannel.h"
-//#include "mozilla/net/HttpChannelChild.h"
-//#include "nsIRequest.h"
+#include "mozilla/net/PHttpChannelChild.h"
+#include "mozilla/net/HttpChannelChild.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
 
@@ -27,9 +23,12 @@ HttpRetargetChannelChild::RecvOnTransportAndData(const nsresult& channelStatus,
                                                  const uint64_t& progressMax,
                                                  const nsCString& data,
                                                  const uint64_t& offset,
-                                                 const uint32_t& count) {
-//   mHttpChannel->OnTransportAndData(channelStatus, transportStatus, progress,
-//                                    progressMax, data, offset, count);
+                                                 const uint32_t& count)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  static_cast<HttpChannelChild*>(mHttpChannel)->
+    OnTransportAndData(channelStatus, transportStatus, progress,
+                       progressMax, data, offset, count);
   return true;
 }
 
@@ -45,19 +44,20 @@ HttpRetargetChannelChild::~HttpRetargetChannelChild()
 }
 
 nsresult
-HttpRetargetChannelChild::Init(HttpChannelChild* aHttpChannel)
+HttpRetargetChannelChild::Init(PHttpChannelChild* aHttpChannel)
 {
-  PBackgroundChild* backgroundChild = mozilla::ipc::BackgroundChild::GetForCurrentThread();
+  PBackgroundChild* backgroundChild =
+    mozilla::ipc::BackgroundChild::GetForCurrentThread();
 
   if (!backgroundChild)
     return NS_ERROR_FAILURE;
 
   backgroundChild->SendPHttpRetargetChannelConstructor(this, mChannelId);
 
- // if (!aHttpChannel)
- //   return NS_ERROR_FAILURE;
+  if (!aHttpChannel)
+    return NS_ERROR_FAILURE;
 
- // mHttpChannel = static_cast<HttpChannelChild*>(aHttpChannel);
+  mHttpChannel = aHttpChannel;
 
   return NS_OK;
 }

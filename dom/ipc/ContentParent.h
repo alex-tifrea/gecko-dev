@@ -18,7 +18,6 @@
 
 #include "nsTHashtable.h"
 #include "nsDataHashtable.h"
-#include "nsInterfaceHashtable.h"
 #include "nsFrameMessageManager.h"
 #include "nsHashKeys.h"
 #include "nsIObserver.h"

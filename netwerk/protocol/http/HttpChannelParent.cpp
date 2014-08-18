@@ -35,6 +35,7 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/net/PHttpRetargetChannelParent.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/ipc/BackgroundParent.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
@@ -59,6 +60,7 @@ HttpChannelParent::HttpChannelParent(const PBrowserOrId& iframeEmbedding,
   , mDivertedOnStartRequest(false)
   , mSuspendedForDiversion(false)
   , mNestedFrameId(0)
+  , mHttpRetargetChannel(nullptr)
 {
   // Ensure gHttpHandler is initialized: we need the atom table up and running.
   nsCOMPtr<nsIHttpProtocolHandler> dummyInitializer =
@@ -100,15 +102,15 @@ HttpChannelParent::Init(const HttpChannelCreationArgs& aArgs)
   {
     const HttpChannelOpenArgs& a = aArgs.get_HttpChannelOpenArgs();
     return DoAsyncOpen1(a.uri(), a.original(), a.doc(), a.referrer(),
-                       a.apiRedirectTo(), a.loadFlags(), a.requestHeaders(),
-                       a.requestMethod(), a.uploadStream(),
-                       a.uploadStreamHasHeaders(), a.priority(),
-                       a.redirectionLimit(), a.allowPipelining(), a.allowSTS(),
-                       a.forceAllowThirdPartyCookie(), a.resumeAt(),
-                       a.startPos(), a.entityID(), a.chooseApplicationCache(),
-                       a.appCacheClientID(), a.allowSpdy(), a.fds(), a.channelId(),
-                       a.requestingPrincipalInfo(), a.securityFlags(),
-                       a.contentPolicyType());
+                        a.apiRedirectTo(), a.loadFlags(), a.requestHeaders(),
+                        a.requestMethod(), a.uploadStream(),
+                        a.uploadStreamHasHeaders(), a.priority(),
+                        a.redirectionLimit(), a.allowPipelining(), a.allowSTS(),
+                        a.forceAllowThirdPartyCookie(), a.resumeAt(),
+                        a.startPos(), a.entityID(), a.chooseApplicationCache(),
+                        a.appCacheClientID(), a.allowSpdy(), a.fds(), a.channelId(),
+                        a.requestingPrincipalInfo(), a.securityFlags(),
+                        a.contentPolicyType());
   }
   case HttpChannelCreationArgs::THttpChannelConnectArgs:
   {
@@ -132,7 +134,8 @@ NS_IMPL_ISUPPORTS(HttpChannelParent,
                   nsIStreamListener,
                   nsIParentChannel,
                   nsIAuthPromptProvider,
-                  nsIParentRedirectingChannel)
+                  nsIParentRedirectingChannel,
+                  nsIThreadRetargetableStreamListener)
 
 //-----------------------------------------------------------------------------
 // HttpChannelParent::nsIInterfaceRequestor
@@ -170,7 +173,8 @@ HttpChannelParent::GetInterface(const nsIID& aIID, void **result)
 //-----------------------------------------------------------------------------
 
 bool
-HttpChannelParent::DoAsyncOpen1(  const URIParams&           aURI,
+// TODO: StartAsyncOpen
+HttpChannelParent::DoAsyncOpen1( const URIParams&           aURI,
                                  const OptionalURIParams&   aOriginalURI,
                                  const OptionalURIParams&   aDocURI,
                                  const OptionalURIParams&   aReferrerURI,
@@ -360,16 +364,16 @@ HttpChannelParent::DoAsyncOpen1(  const URIParams&           aURI,
   // mHttpRetargetChannels hashtable, that resides in ContentParent
   ContentParent* contentParent =
     static_cast<ContentParent*>(this->Manager()->Manager());
-  PHttpRetargetChannelParent* httpRetargetChannel = contentParent->GetHttpRetargetChannel(this->mChannelID);
-  // | httpRetargetChannel | is nullptr if there is no entry in the hashtable
+  mHttpRetargetChannel = contentParent->GetHttpRetargetChannel(this->mChannelID);
+  // | mHttpRetargetChannel | is nullptr if there is no entry in the hashtable
   // corresponding to the given key.
 
-  if (httpRetargetChannel) {
-    DoAsyncOpen2(httpRetargetChannel);
+  if (mHttpRetargetChannel) {
+    DoAsyncOpen2();
   } else {
     // If the HttpRetargetChannelParent actor was not instantiated yet, we add
     // the HttpChannelParent to a new hashtable in order for it to be accessible
-    // from the HttpRetargetChannelParent actor who will try to call
+    // from the HttpRetargetChannelParent actor which will try to call
     // DoAsyncOpen2 on it.
     contentParent->AddHttpChannel(this->GetChannelId(), this);
     contentParent->SetMustCallAsyncOpen(this->GetChannelId());
@@ -379,7 +383,8 @@ HttpChannelParent::DoAsyncOpen1(  const URIParams&           aURI,
 }
 
 bool
-HttpChannelParent::DoAsyncOpen2(const PHttpRetargetChannelParent* aHttpRetargetChannelParent)
+//TODO: FinishAsyncOpen
+HttpChannelParent::DoAsyncOpen2()
 {
   nsresult rv;
 
@@ -709,6 +714,17 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
       NS_SerializeToString(secInfoSer, secInfoSerialization);
   }
 
+  nsresult rv;
+  nsCOMPtr<nsIThreadRetargetableRequest> threadRetargetableRequest =
+    do_QueryInterface(aRequest, &rv);
+  if (threadRetargetableRequest) {
+    rv = threadRetargetableRequest->RetargetDeliveryTo(BackgroundParent::GetBackgroundThread());
+  }
+
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to retarget data delivery to the background thread.");
+  }
+
   uint16_t redirectCount = 0;
   mChannel->GetRedirectCount(&redirectCount);
   if (mIPCClosed ||
@@ -789,9 +805,14 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
   // mStoredStatus/mStoredProgress(Max) to appropriate values, unless
   // LOAD_BACKGROUND set.  In that case, they'll have garbage values, but
   // child doesn't use them.
-  if (mIPCClosed || !SendOnTransportAndData(channelStatus, mStoredStatus,
-                                            mStoredProgress, mStoredProgressMax,
-                                            data, aOffset, aCount)) {
+  if (mIPCClosed || !mHttpRetargetChannel ||
+      !mHttpRetargetChannel->SendOnTransportAndData(channelStatus,
+                                                    mStoredStatus,
+                                                    mStoredProgress,
+                                                    mStoredProgressMax,
+                                                    data,
+                                                    aOffset,
+                                                    aCount)) {
     return NS_ERROR_UNEXPECTED;
   }
   return NS_OK;
@@ -1138,6 +1159,18 @@ HttpChannelParent::GetAuthPrompt(uint32_t aPromptReason, const nsIID& iid,
     new NeckoParent::NestedFrameAuthPrompt(Manager(), mNestedFrameId);
   prompt.forget(aResult);
   return NS_OK;
+}
+
+//-----------------------------------------------------------------------------
+// HttpChannelParent::nsThreadRetargetableStreamListener
+//-----------------------------------------------------------------------------
+
+NS_IMETHODIMP
+HttpChannelParent::CheckListenerChain()
+{
+    NS_ASSERTION(NS_IsMainThread(), "Should be on main thread!");
+    nsresult rv = NS_OK;
+    return rv;
 }
 
 }} // mozilla::net

@@ -12,15 +12,12 @@
 #include "mozilla/net/HttpRetargetChannelParent.h"
 #include "mozilla/net/PHttpRetargetChannelParent.h"
 #include "BackgroundParent.h"
-#include "mozilla/dom/PContentParent.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/PBackgroundParent.h"
-#include "mozilla/net/PHttpChannelParent.h"
 #include "mozilla/net/HttpChannelParent.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::net;
-using namespace mozilla::ipc;
 
 namespace {
 
@@ -50,7 +47,7 @@ public:
                          PHttpRetargetChannelParent* aHttpRetargetChannelParent)
     :  mContentParent(aContentParent)
   {
-    AssertIsOnBackgroundThread();
+    mozilla::ipc::AssertIsOnBackgroundThread();
     MOZ_ASSERT(mContentParent);
     mHttpRetargetChannelParent =
       static_cast<HttpRetargetChannelParent*>(aHttpRetargetChannelParent);
@@ -58,7 +55,7 @@ public:
 
   void Dispatch()
   {
-    AssertIsOnBackgroundThread();
+    mozilla::ipc::AssertIsOnBackgroundThread();
 
     nsresult rv = NS_DispatchToMainThread(this);
     NS_ENSURE_SUCCESS_VOID(rv);
@@ -74,17 +71,26 @@ public:
                                            mHttpRetargetChannelParent);
 
     if (mContentParent->GetMustCallAsyncOpen(channelId)) {
-      // | HttpChannelParent::DoAsyncOpen1 | could not call
-      // | HttpChannelParent::DoAsyncOpen2 |; that's why it will be called now.
+      // `HttpChannelParent::AsyncOpen` needs to be delayed until after the
+      // `HttpRetargetChannelParent` object has been created and added to the
+      // `mHttpRetargetChannels` hashtable that resides in `ContentParent`. In
+      // order to do this, the old `HttpChannelParent::DoAsyncOpen` has been
+      // split into two: the first part does the required initializations while
+      // the second half calls `HttpChannelParent::AsyncOpen`. If the
+      // corresponding `HttpRetargetChannelParent` object is not in the
+      // hashtable by the time `HttpChannelParent::DoAsyncOpen2` should be called,
+      // then the responsability for calling `HttpChannelParent::DoAsyncOpen2` is
+      // passed to `AddHttpRetargetChannel::Run()`.
 
       HttpChannelParent* httpChannel =
         static_cast<HttpChannelParent*>(mContentParent->GetHttpChannel(channelId));
 
       if (httpChannel)
-        httpChannel->DoAsyncOpen2(mHttpRetargetChannelParent);
+        httpChannel->DoAsyncOpen2();
       else
         return NS_ERROR_FAILURE;
 
+      httpChannel->SetHttpRetargetChannel(mHttpRetargetChannelParent);
       mContentParent->ResetMustCallAsyncOpen(channelId);
     }
 
@@ -128,13 +134,15 @@ HttpRetargetChannelParent::~HttpRetargetChannelParent()
 bool
 HttpRetargetChannelParent::Init(uint32_t aChannelId)
 {
-  AssertIsOnBackgroundThread();
+  //TODO: instead of using BackgroundParent::GetBackgroundThread(),
+  // save the current thread here as a member
+  mozilla::ipc::AssertIsOnBackgroundThread();
 
-  PBackgroundParent* backgroundParent = this->Manager();
+  mozilla::ipc::PBackgroundParent* backgroundParent = this->Manager();
 
   mChannelId = aChannelId;
   nsRefPtr<AddToHashtableRunnable> runnable =
-    new AddToHashtableRunnable(BackgroundParent::GetContentParent(backgroundParent),
+    new AddToHashtableRunnable(mozilla::ipc::BackgroundParent::GetContentParent(backgroundParent),
                                this);
   runnable->Dispatch();
   return true;

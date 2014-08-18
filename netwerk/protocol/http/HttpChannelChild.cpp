@@ -461,6 +461,9 @@ HttpChannelChild::OnTransportAndData(const nsresult& channelStatus,
   // - JDUELL: may not need mStatus/mIsPending checks, given this is always called
   //   during OnDataAvailable, and we've already checked mCanceled.  Code
   //   dupe'd from nsHttpChannel
+
+  //TODO: DEBUGGGGG
+  //mProgressSink = nullptr;
   if (mProgressSink && NS_SUCCEEDED(mStatus) && mIsPending &&
       !(mLoadFlags & LOAD_BACKGROUND))
   {

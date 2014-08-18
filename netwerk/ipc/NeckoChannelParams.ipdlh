@@ -55,7 +55,10 @@ struct HttpChannelOpenArgs
   uint32_t                    securityFlags;
   uint32_t                    contentPolicyType;
 
-  // channelID is an identifier for each http channel that is created
+  // `channelID` is an identifier for each http channel that is created.
+  // Do not mistake this channelId for the one used when redirecting; they are
+  // serve different purposes and there is no connection between them
+  // whatsoever.
   uint32_t                    channelId;
 };
 

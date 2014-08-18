@@ -241,6 +241,14 @@ private:
         Transport* aTransport,
         ProcessId aOtherProcess);
 
+  // Forwarded from BackgroundParent.
+  static nsIThread*
+  GetBackgroundThread()
+  {
+    return sBackgroundThread.get();
+  }
+
+
   static bool
   CreateBackgroundThread();
 
@@ -875,6 +883,13 @@ BackgroundParent::Alloc(ContentParent* aContent,
                         ProcessId aOtherProcess)
 {
   return ParentImpl::Alloc(aContent, aTransport, aOtherProcess);
+}
+
+// static
+nsIThread*
+BackgroundParent::GetBackgroundThread()
+{
+  return ParentImpl::GetBackgroundThread();
 }
 
 // -----------------------------------------------------------------------------

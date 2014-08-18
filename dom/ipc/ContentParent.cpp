@@ -4106,7 +4106,7 @@ ContentParent::RemoveHttpRetargetChannel(uint32_t aKey)
 
 void
 ContentParent::AddHttpChannel(uint32_t aKey,
-                                      PHttpChannelParent* aData)
+                              PHttpChannelParent* aData)
 {
   mHttpChannels.Put(aKey, aData);
 }

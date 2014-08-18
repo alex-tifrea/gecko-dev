@@ -20,6 +20,7 @@
 #include "nsHttpChannel.h"
 #include "nsIAuthPromptProvider.h"
 #include "mozilla/net/PHttpRetargetChannelParent.h"
+#include "nsIThreadRetargetableStreamListener.h"
 
 typedef mozilla::net::PHttpRetargetChannelParent PHttpRetargetChannelParent;
 
@@ -35,6 +36,7 @@ class TabParent;
 namespace net {
 
 class HttpChannelParentListener;
+
 class PBrowserOrId;
 
 class HttpChannelParent : public PHttpChannelParent
@@ -44,6 +46,7 @@ class HttpChannelParent : public PHttpChannelParent
                         , public ADivertableParentChannel
                         , public nsIAuthPromptProvider
                         , public DisconnectableParent
+                        , public nsIThreadRetargetableStreamListener
 {
   virtual ~HttpChannelParent();
 
@@ -56,6 +59,7 @@ public:
   NS_DECL_NSIPROGRESSEVENTSINK
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSIAUTHPROMPTPROVIDER
+  NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
 
   HttpChannelParent(const PBrowserOrId& iframeEmbedding,
                     nsILoadContext* aLoadContext,
@@ -79,7 +83,12 @@ public:
   void SetChannelID(uint32_t channelID) { mChannelID = channelID; }
   uint32_t GetChannelId() { return mChannelID; }
 
-  bool DoAsyncOpen2(const PHttpRetargetChannelParent* aHttpRetargetChannelParent);
+  void SetHttpRetargetChannel(PHttpRetargetChannelParent* aHttpRetargetChannel)
+  {
+    mHttpRetargetChannel = aHttpRetargetChannel;
+  }
+
+  bool DoAsyncOpen2();
 
 protected:
   // used to connect redirected-to channel in parent with just created
@@ -87,31 +96,31 @@ protected:
   bool ConnectChannel(const uint32_t& channelId);
 
   bool DoAsyncOpen1(const URIParams&           uri,
-                   const OptionalURIParams&   originalUri,
-                   const OptionalURIParams&   docUri,
-                   const OptionalURIParams&   referrerUri,
-                   const OptionalURIParams&   internalRedirectUri,
-                   const uint32_t&            loadFlags,
-                   const RequestHeaderTuples& requestHeaders,
-                   const nsCString&           requestMethod,
-                   const OptionalInputStreamParams& uploadStream,
-                   const bool&                uploadStreamHasHeaders,
-                   const uint16_t&            priority,
-                   const uint8_t&             redirectionLimit,
-                   const bool&                allowPipelining,
-                   const bool&                allowSTS,
-                   const bool&                forceAllowThirdPartyCookie,
-                   const bool&                doResumeAt,
-                   const uint64_t&            startPos,
-                   const nsCString&           entityID,
-                   const bool&                chooseApplicationCache,
-                   const nsCString&           appCacheClientID,
-                   const bool&                allowSpdy,
-                   const OptionalFileDescriptorSet& aFds,
-                   const uint32_t             aChannelID,
-                   const ipc::PrincipalInfo&  aRequestingPrincipalInfo,
-                   const uint32_t&            aSecurityFlags,
-                   const uint32_t&            aContentPolicyType);
+                    const OptionalURIParams&   originalUri,
+                    const OptionalURIParams&   docUri,
+                    const OptionalURIParams&   referrerUri,
+                    const OptionalURIParams&   internalRedirectUri,
+                    const uint32_t&            loadFlags,
+                    const RequestHeaderTuples& requestHeaders,
+                    const nsCString&           requestMethod,
+                    const OptionalInputStreamParams& uploadStream,
+                    const bool&                uploadStreamHasHeaders,
+                    const uint16_t&            priority,
+                    const uint8_t&             redirectionLimit,
+                    const bool&                allowPipelining,
+                    const bool&                allowSTS,
+                    const bool&                forceAllowThirdPartyCookie,
+                    const bool&                doResumeAt,
+                    const uint64_t&            startPos,
+                    const nsCString&           entityID,
+                    const bool&                chooseApplicationCache,
+                    const nsCString&           appCacheClientID,
+                    const bool&                allowSpdy,
+                    const OptionalFileDescriptorSet& aFds,
+                    const uint32_t             aChannelID,
+                    const ipc::PrincipalInfo&  aRequestingPrincipalInfo,
+                    const uint32_t&            aSecurityFlags,
+                    const uint32_t&            aContentPolicyType);
 
   virtual bool RecvSetPriority(const uint16_t& priority) MOZ_OVERRIDE;
   virtual bool RecvSetCacheTokenCachedCharset(const nsCString& charset) MOZ_OVERRIDE;
@@ -189,7 +198,7 @@ private:
 
   // A reference to the coresponding PHttpRetargetChannel actor. The reference
   // is looked up in the mHttpRetargetChannels hashtable.
-  PHttpRetargetChannelParent* mHttpRetargetParent;
+  PHttpRetargetChannelParent* mHttpRetargetChannel;
 
   uint32_t mChannelID;
 };
