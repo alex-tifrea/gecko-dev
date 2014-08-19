@@ -22,10 +22,13 @@ EXPORTS.mozilla.net += [
     'RemoteOpenFileParent.h',
 ]
 
-UNIFIED_SOURCES += [
-    'ChannelEventQueue.cpp',
+SOURCES += [
     'HttpRetargetChannelChild.cpp',
     'HttpRetargetChannelParent.cpp',
+]
+
+UNIFIED_SOURCES += [
+    'ChannelEventQueue.cpp',
     'NeckoChild.cpp',
     'NeckoCommon.cpp',
     'NeckoParent.cpp',

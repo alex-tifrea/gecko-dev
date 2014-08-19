@@ -32,6 +32,8 @@ public:
 
   virtual nsresult Init(PHttpChannelChild* aHttpChannel);
 
+  virtual void NotifyRedirect(uint32_t newChannelId);
+
 private:
   uint32_t mChannelId;
   PHttpChannelChild* mHttpChannel;

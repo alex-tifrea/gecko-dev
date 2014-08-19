@@ -5,6 +5,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "HttpLog.h"
+
 #include "mozilla/Assertions.h"
 #include "nsThreadUtils.h"
 #include "nsTraceRefcnt.h"
@@ -18,6 +20,7 @@
 
 using namespace mozilla::dom;
 using namespace mozilla::net;
+using namespace mozilla::ipc;
 
 namespace {
 
@@ -47,7 +50,7 @@ public:
                          PHttpRetargetChannelParent* aHttpRetargetChannelParent)
     :  mContentParent(aContentParent)
   {
-    mozilla::ipc::AssertIsOnBackgroundThread();
+    AssertIsOnBackgroundThread();
     MOZ_ASSERT(mContentParent);
     mHttpRetargetChannelParent =
       static_cast<HttpRetargetChannelParent*>(aHttpRetargetChannelParent);
@@ -55,7 +58,7 @@ public:
 
   void Dispatch()
   {
-    mozilla::ipc::AssertIsOnBackgroundThread();
+    AssertIsOnBackgroundThread();
 
     nsresult rv = NS_DispatchToMainThread(this);
     NS_ENSURE_SUCCESS_VOID(rv);
@@ -78,15 +81,17 @@ public:
       // split into two: the first part does the required initializations while
       // the second half calls `HttpChannelParent::AsyncOpen`. If the
       // corresponding `HttpRetargetChannelParent` object is not in the
-      // hashtable by the time `HttpChannelParent::DoAsyncOpen2` should be called,
-      // then the responsability for calling `HttpChannelParent::DoAsyncOpen2` is
+      // hashtable by the time `HttpChannelParent::FinishAsyncOpen` should be called,
+      // then the responsability for calling `HttpChannelParent::FinishAsyncOpen` is
       // passed to `AddHttpRetargetChannel::Run()`.
 
       HttpChannelParent* httpChannel =
         static_cast<HttpChannelParent*>(mContentParent->GetHttpChannel(channelId));
 
+      LOG(("HttpRetargetChannelChild::Init [this=%p httpChannel=%p]\n",this,httpChannel));
+
       if (httpChannel)
-        httpChannel->DoAsyncOpen2();
+        httpChannel->FinishAsyncOpen();
       else
         return NS_ERROR_FAILURE;
 
@@ -118,11 +123,16 @@ AssertIsInMainProcess()
 void
 HttpRetargetChannelParent::ActorDestroy(ActorDestroyReason aWhy)
 {
+  mIPCClosed = true;
 }
 
 HttpRetargetChannelParent::HttpRetargetChannelParent()
+  : mChannelId(0)
+  , mBackgroundThread(nullptr)
+  , mIPCClosed(false)
 {
   AssertIsInMainProcess();
+  LOG(("HttpRetargetChannelParent::Constructor [this=%p]\n",this));
   MOZ_COUNT_CTOR(HttpRetargetChannelParent);
 }
 
@@ -134,18 +144,24 @@ HttpRetargetChannelParent::~HttpRetargetChannelParent()
 bool
 HttpRetargetChannelParent::Init(uint32_t aChannelId)
 {
-  //TODO: instead of using BackgroundParent::GetBackgroundThread(),
-  // save the current thread here as a member
-  mozilla::ipc::AssertIsOnBackgroundThread();
+  AssertIsOnBackgroundThread();
 
-  mozilla::ipc::PBackgroundParent* backgroundParent = this->Manager();
+  mBackgroundThread = NS_GetCurrentThread();
+
+  PBackgroundParent* backgroundParent = this->Manager();
 
   mChannelId = aChannelId;
   nsRefPtr<AddToHashtableRunnable> runnable =
-    new AddToHashtableRunnable(mozilla::ipc::BackgroundParent::GetContentParent(backgroundParent),
+    new AddToHashtableRunnable(BackgroundParent::GetContentParent(backgroundParent),
                                this);
   runnable->Dispatch();
   return true;
+}
+
+void
+HttpRetargetChannelParent::NotifyRedirect(uint32_t newChannelId)
+{
+  mChannelId = newChannelId;
 }
 
 } // namespace net

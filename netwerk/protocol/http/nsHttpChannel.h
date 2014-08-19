@@ -123,8 +123,6 @@ public:
     NS_IMETHOD GetResponseStart(mozilla::TimeStamp *aResponseStart);
     NS_IMETHOD GetResponseEnd(mozilla::TimeStamp *aResponseEnd);
 
-    nsCOMPtr<nsPIThreadRetargetableProgressSink> mRetargetableProgressSink;
-
 public: /* internal necko use only */
 
     void InternalSetUploadStream(nsIInputStream *uploadStream)
@@ -419,6 +417,10 @@ private:
     uint32_t                          mIsPartialRequest : 1;
     // true iff there is AutoRedirectVetoNotifier on the stack
     uint32_t                          mHasAutoRedirectVetoNotifier : 1;
+
+    // `mRetargetableProgressSink` is used in order to tell if `mProgressSink`
+    // is retargetable off the main thread
+    nsCOMPtr<nsPIThreadRetargetableProgressSink> mRetargetableProgressSink;
 
     nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
 

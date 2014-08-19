@@ -62,7 +62,6 @@ public:
   NS_DECL_NSIINTERFACEREQUESTOR
   NS_DECL_NSIAUTHPROMPTPROVIDER
   NS_DECL_NSITHREADRETARGETABLESTREAMLISTENER
-//   NS_DECL_NSPITHREADRETARGETABLEPROGRESSSINK
 
   HttpChannelParent(const PBrowserOrId& iframeEmbedding,
                     nsILoadContext* aLoadContext,
@@ -91,39 +90,39 @@ public:
     mHttpRetargetChannel = aHttpRetargetChannel;
   }
 
-  bool DoAsyncOpen2();
+  bool FinishAsyncOpen();
 
 protected:
   // used to connect redirected-to channel in parent with just created
   // ChildChannel.  Used during redirects.
   bool ConnectChannel(const uint32_t& channelId);
 
-  bool DoAsyncOpen1(const URIParams&           uri,
-                    const OptionalURIParams&   originalUri,
-                    const OptionalURIParams&   docUri,
-                    const OptionalURIParams&   referrerUri,
-                    const OptionalURIParams&   internalRedirectUri,
-                    const uint32_t&            loadFlags,
-                    const RequestHeaderTuples& requestHeaders,
-                    const nsCString&           requestMethod,
-                    const OptionalInputStreamParams& uploadStream,
-                    const bool&                uploadStreamHasHeaders,
-                    const uint16_t&            priority,
-                    const uint8_t&             redirectionLimit,
-                    const bool&                allowPipelining,
-                    const bool&                allowSTS,
-                    const bool&                forceAllowThirdPartyCookie,
-                    const bool&                doResumeAt,
-                    const uint64_t&            startPos,
-                    const nsCString&           entityID,
-                    const bool&                chooseApplicationCache,
-                    const nsCString&           appCacheClientID,
-                    const bool&                allowSpdy,
-                    const OptionalFileDescriptorSet& aFds,
-                    const uint32_t             aChannelID,
-                    const ipc::PrincipalInfo&  aRequestingPrincipalInfo,
-                    const uint32_t&            aSecurityFlags,
-                    const uint32_t&            aContentPolicyType);
+  bool StartAsyncOpen(const URIParams&           uri,
+                      const OptionalURIParams&   originalUri,
+                      const OptionalURIParams&   docUri,
+                      const OptionalURIParams&   referrerUri,
+                      const OptionalURIParams&   internalRedirectUri,
+                      const uint32_t&            loadFlags,
+                      const RequestHeaderTuples& requestHeaders,
+                      const nsCString&           requestMethod,
+                      const OptionalInputStreamParams& uploadStream,
+                      const bool&                uploadStreamHasHeaders,
+                      const uint16_t&            priority,
+                      const uint8_t&             redirectionLimit,
+                      const bool&                allowPipelining,
+                      const bool&                allowSTS,
+                      const bool&                forceAllowThirdPartyCookie,
+                      const bool&                doResumeAt,
+                      const uint64_t&            startPos,
+                      const nsCString&           entityID,
+                      const bool&                chooseApplicationCache,
+                      const nsCString&           appCacheClientID,
+                      const bool&                allowSpdy,
+                      const OptionalFileDescriptorSet& aFds,
+                      const uint32_t             aChannelID,
+                      const ipc::PrincipalInfo&  aRequestingPrincipalInfo,
+                      const uint32_t&            aSecurityFlags,
+                      const uint32_t&            aContentPolicyType);
 
   virtual bool RecvSetPriority(const uint16_t& priority) MOZ_OVERRIDE;
   virtual bool RecvSetCacheTokenCachedCharset(const nsCString& charset) MOZ_OVERRIDE;

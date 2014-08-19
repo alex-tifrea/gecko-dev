@@ -56,7 +56,7 @@ struct HttpChannelOpenArgs
   uint32_t                    contentPolicyType;
 
   // `channelID` is an identifier for each http channel that is created.
-  // Do not mistake this channelId for the one used when redirecting; they are
+  // Do not mistake this channelId for the one used when redirecting; they
   // serve different purposes and there is no connection between them
   // whatsoever.
   uint32_t                    channelId;
@@ -64,7 +64,9 @@ struct HttpChannelOpenArgs
 
 struct HttpChannelConnectArgs
 {
-  uint32_t channelId;
+  uint32_t redirectChannelId;
+  uint32_t oldHttpChannelId;
+  uint32_t newHttpChannelId;
 };
 
 union HttpChannelCreationArgs

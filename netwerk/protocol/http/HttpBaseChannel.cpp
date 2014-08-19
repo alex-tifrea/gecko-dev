@@ -69,13 +69,13 @@ HttpBaseChannel::HttpBaseChannel()
   , mResponseTimeoutEnabled(true)
   , mAllRedirectsSameOrigin(true)
   , mAllRedirectsPassTimingAllowCheck(true)
+  , mChannelId(0)
   , mSuspendCount(0)
   , mProxyResolveFlags(0)
   , mContentDispositionHint(UINT32_MAX)
   , mHttpHandler(gHttpHandler)
   , mRedirectCount(0)
   , mForcePending(false)
-  , mChannelId(0)
 {
   LOG(("Creating HttpBaseChannel @%x\n", this));
 

@@ -24,10 +24,16 @@ public:
 
   virtual bool Init(uint32_t aChannelId);
 
+  virtual void NotifyRedirect(uint32_t newChannelId);
+
   uint32_t GetChannelId() { return mChannelId; }
+
+  nsIThread* GetBackgroundThread() { return mBackgroundThread; }
 
 private:
   uint32_t mChannelId;
+  nsIThread* mBackgroundThread;
+  bool mIPCClosed;
 };
 
 } // namespace net

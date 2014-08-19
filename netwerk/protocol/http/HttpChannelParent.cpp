@@ -34,6 +34,7 @@
 
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/net/PHttpRetargetChannelParent.h"
+#include "mozilla/net/HttpRetargetChannelParent.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
 
@@ -62,6 +63,7 @@ HttpChannelParent::HttpChannelParent(const PBrowserOrId& iframeEmbedding,
   , mNestedFrameId(0)
   , mHttpRetargetChannel(nullptr)
 {
+  LOG(("Creating HttpChannelParent [this=%p]\n", this));
   // Ensure gHttpHandler is initialized: we need the atom table up and running.
   nsCOMPtr<nsIHttpProtocolHandler> dummyInitializer =
     do_GetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "http");
@@ -101,21 +103,46 @@ HttpChannelParent::Init(const HttpChannelCreationArgs& aArgs)
   case HttpChannelCreationArgs::THttpChannelOpenArgs:
   {
     const HttpChannelOpenArgs& a = aArgs.get_HttpChannelOpenArgs();
-    return DoAsyncOpen1(a.uri(), a.original(), a.doc(), a.referrer(),
-                        a.apiRedirectTo(), a.loadFlags(), a.requestHeaders(),
-                        a.requestMethod(), a.uploadStream(),
-                        a.uploadStreamHasHeaders(), a.priority(),
-                        a.redirectionLimit(), a.allowPipelining(), a.allowSTS(),
-                        a.forceAllowThirdPartyCookie(), a.resumeAt(),
-                        a.startPos(), a.entityID(), a.chooseApplicationCache(),
-                        a.appCacheClientID(), a.allowSpdy(), a.fds(), a.channelId(),
-                        a.requestingPrincipalInfo(), a.securityFlags(),
-                        a.contentPolicyType());
+    LOG(("HttpChannelParent::Init OPEN [this=%p channelId=%d]\n", this, a.channelId()));
+    return StartAsyncOpen(a.uri(), a.original(), a.doc(), a.referrer(),
+                          a.apiRedirectTo(), a.loadFlags(), a.requestHeaders(),
+                          a.requestMethod(), a.uploadStream(),
+                          a.uploadStreamHasHeaders(), a.priority(),
+                          a.redirectionLimit(), a.allowPipelining(), a.allowSTS(),
+                          a.forceAllowThirdPartyCookie(), a.resumeAt(),
+                          a.startPos(), a.entityID(), a.chooseApplicationCache(),
+                          a.appCacheClientID(), a.allowSpdy(), a.fds(), a.channelId(),
+                          a.requestingPrincipalInfo(), a.securityFlags(),
+                          a.contentPolicyType());
   }
   case HttpChannelCreationArgs::THttpChannelConnectArgs:
   {
     const HttpChannelConnectArgs& cArgs = aArgs.get_HttpChannelConnectArgs();
-    return ConnectChannel(cArgs.channelId());
+    // Delete the entries in the hashtables (`ContentParent::mHttpChannels` and
+    // `ContentParent::mHttpRetargetChannels`) corresponding to the old channel.
+    // Add entries for the new channel and update the
+    // `HttpRetargetChannelParent` actor.
+    const uint32_t oldChannelId = cArgs.oldHttpChannelId();
+    const uint32_t newChannelId = cArgs.newHttpChannelId();
+    LOG(("HttpChannelParent::Init REDIRECTING [oldChannelId=%d newChannelId=%d]\n", oldChannelId, newChannelId));
+    ContentParent* contentParent =
+      static_cast<ContentParent*>(this->Manager()->Manager());
+
+    if (contentParent)
+      mHttpRetargetChannel = contentParent->GetHttpRetargetChannel(oldChannelId);
+
+    if (mHttpRetargetChannel) {
+      static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannel)->
+        NotifyRedirect(newChannelId);
+    } else {
+    }
+
+    contentParent->RemoveHttpChannel(oldChannelId);
+    contentParent->RemoveHttpRetargetChannel(oldChannelId);
+
+    contentParent->AddHttpRetargetChannel(newChannelId, mHttpRetargetChannel);
+
+    return ConnectChannel(cArgs.redirectChannelId());
   }
   default:
     NS_NOTREACHED("unknown open type");
@@ -174,33 +201,32 @@ HttpChannelParent::GetInterface(const nsIID& aIID, void **result)
 //-----------------------------------------------------------------------------
 
 bool
-// TODO: StartAsyncOpen
-HttpChannelParent::DoAsyncOpen1( const URIParams&           aURI,
-                                 const OptionalURIParams&   aOriginalURI,
-                                 const OptionalURIParams&   aDocURI,
-                                 const OptionalURIParams&   aReferrerURI,
-                                 const OptionalURIParams&   aAPIRedirectToURI,
-                                 const uint32_t&            aLoadFlags,
-                                 const RequestHeaderTuples& requestHeaders,
-                                 const nsCString&           requestMethod,
-                                 const OptionalInputStreamParams& uploadStream,
-                                 const bool&              uploadStreamHasHeaders,
-                                 const uint16_t&            priority,
-                                 const uint8_t&             redirectionLimit,
-                                 const bool&              allowPipelining,
-                                 const bool&              allowSTS,
-                                 const bool&              forceAllowThirdPartyCookie,
-                                 const bool&                doResumeAt,
-                                 const uint64_t&            startPos,
-                                 const nsCString&           entityID,
-                                 const bool&                chooseApplicationCache,
-                                 const nsCString&           appCacheClientID,
-                                 const bool&                allowSpdy,
-                                 const OptionalFileDescriptorSet& aFds,
-                                 const uint32_t             aChannelID,
-                                 const ipc::PrincipalInfo&  aRequestingPrincipalInfo,
-                                 const uint32_t&            aSecurityFlags,
-                                 const uint32_t&            aContentPolicyType)
+HttpChannelParent::StartAsyncOpen( const URIParams&           aURI,
+                                   const OptionalURIParams&   aOriginalURI,
+                                   const OptionalURIParams&   aDocURI,
+                                   const OptionalURIParams&   aReferrerURI,
+                                   const OptionalURIParams&   aAPIRedirectToURI,
+                                   const uint32_t&            loadFlags,
+                                   const RequestHeaderTuples& requestHeaders,
+                                   const nsCString&           requestMethod,
+                                   const OptionalInputStreamParams& uploadStream,
+                                   const bool&              uploadStreamHasHeaders,
+                                   const uint16_t&            priority,
+                                   const uint8_t&             redirectionLimit,
+                                   const bool&              allowPipelining,
+                                   const bool&              allowSTS,
+                                   const bool&              forceAllowThirdPartyCookie,
+                                   const bool&                doResumeAt,
+                                   const uint64_t&            startPos,
+                                   const nsCString&           entityID,
+                                   const bool&                chooseApplicationCache,
+                                   const nsCString&           appCacheClientID,
+                                   const bool&                allowSpdy,
+                                   const OptionalFileDescriptorSet& aFds,
+                                   const uint32_t             aChannelID,
+                                   const ipc::PrincipalInfo&  aRequestingPrincipalInfo,
+                                   const uint32_t&            aSecurityFlags,
+                                   const uint32_t&            aContentPolicyType)
 {
   nsCOMPtr<nsIURI> uri = DeserializeURI(aURI);
   if (!uri) {
@@ -370,12 +396,12 @@ HttpChannelParent::DoAsyncOpen1( const URIParams&           aURI,
   // corresponding to the given key.
 
   if (mHttpRetargetChannel) {
-    DoAsyncOpen2();
+    FinishAsyncOpen();
   } else {
     // If the HttpRetargetChannelParent actor was not instantiated yet, we add
     // the HttpChannelParent to a new hashtable in order for it to be accessible
     // from the HttpRetargetChannelParent actor which will try to call
-    // DoAsyncOpen2 on it.
+    // FinishAsyncOpen on it.
     contentParent->AddHttpChannel(this->GetChannelId(), this);
     contentParent->SetMustCallAsyncOpen(this->GetChannelId());
   }
@@ -384,8 +410,7 @@ HttpChannelParent::DoAsyncOpen1( const URIParams&           aURI,
 }
 
 bool
-//TODO: FinishAsyncOpen
-HttpChannelParent::DoAsyncOpen2()
+HttpChannelParent::FinishAsyncOpen()
 {
   nsresult rv;
 
@@ -718,8 +743,10 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   nsresult rv;
   nsCOMPtr<nsIThreadRetargetableRequest> threadRetargetableRequest =
     do_QueryInterface(aRequest, &rv);
+  nsIThread* backgroundThread = static_cast<HttpRetargetChannelParent*>(
+      mHttpRetargetChannel)->GetBackgroundThread();
   if (threadRetargetableRequest) {
-    rv = threadRetargetableRequest->RetargetDeliveryTo(BackgroundParent::GetBackgroundThread());
+    rv = threadRetargetableRequest->RetargetDeliveryTo(backgroundThread);
   }
 
   if (NS_FAILED(rv)) {
@@ -771,6 +798,7 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
   ContentParent* contentParent =
     static_cast<ContentParent*>(this->Manager()->Manager());
   contentParent->RemoveHttpRetargetChannel(this->mChannelID);
+  contentParent->RemoveHttpChannel(this->mChannelID);
 
   if (mIPCClosed || !SendOnStopRequest(aStatusCode, timing))
     return NS_ERROR_UNEXPECTED;

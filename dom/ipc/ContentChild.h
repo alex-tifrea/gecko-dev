@@ -14,6 +14,8 @@
 #include "nsHashKeys.h"
 #include "nsIObserver.h"
 #include "nsTHashtable.h"
+#include "nsDataHashtable.h"
+#include "mozilla/net/PHttpRetargetChannelChild.h"
 
 #include "nsWeakPtr.h"
 
@@ -338,6 +340,13 @@ public:
 
     virtual bool RecvNotifyPhoneStateChange(const nsString& state) MOZ_OVERRIDE;
 
+    virtual void AddHttpRetargetChannel(uint32_t aKey,
+                                        mozilla::net::PHttpRetargetChannelChild* aData);
+
+    virtual mozilla::net::PHttpRetargetChannelChild* GetHttpRetargetChannel(uint32_t aKey);
+
+    virtual void RemoveHttpRetargetChannel(uint32_t aKey);
+
     void AddIdleObserver(nsIObserver* aObserver, uint32_t aIdleTimeInS);
     void RemoveIdleObserver(nsIObserver* aObserver, uint32_t aIdleTimeInS);
     virtual bool RecvNotifyIdleObserver(const uint64_t& aObserver,
@@ -402,6 +411,9 @@ private:
     nsTHashtable<nsPtrHashKey<nsIObserver>> mIdleObservers;
 
     InfallibleTArray<nsString> mAvailableDictionaries;
+
+    nsDataHashtable<nsUint32HashKey,
+                    mozilla::net::PHttpRetargetChannelChild*> mHttpRetargetChannels;
 
     /**
      * An ID unique to the process containing our corresponding

@@ -226,8 +226,8 @@ nsHttpChannel::nsHttpChannel()
     , mConcurentCacheAccess(0)
     , mIsPartialRequest(0)
     , mHasAutoRedirectVetoNotifier(0)
-    , mDidReval(false)
     , mRetargetableProgressSink(nullptr)
+    , mDidReval(false)
 {
     LOG(("Creating nsHttpChannel [this=%p]\n", this));
     mChannelCreationTime = PR_Now();
@@ -967,6 +967,7 @@ nsHttpChannel::CallOnStartRequest()
         }
     }
 
+    // cache the progress sink so we don't have to query for it each time.
     if (!mProgressSink)
         GetCallback(mProgressSink);
 
@@ -5493,11 +5494,6 @@ NS_IMETHODIMP
 nsHttpChannel::OnTransportStatus(nsITransport *trans, nsresult status,
                                  uint64_t progress, uint64_t progressMax)
 {
-    // cache the progress sink so we don't have to query for it each time.
-    //     DEBUGGG
-//     if (!mProgressSink)
-//         GetCallback(mProgressSink);
-
     if (status == NS_NET_STATUS_CONNECTED_TO ||
         status == NS_NET_STATUS_WAITING_FOR) {
         nsCOMPtr<nsISocketTransport> socketTransport =

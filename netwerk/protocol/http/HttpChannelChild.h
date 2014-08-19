@@ -162,6 +162,9 @@ private:
   // diverting callbacks to parent.
   bool mSuspendSent;
 
+  // `mOldChannelId` is used when redirecting
+  uint32_t mOldChannelId;
+
   // true after successful AsyncOpen until OnStopRequest completes.
   bool RemoteChannelExists() { return mIPCOpen && !mKeptAlive; }
 

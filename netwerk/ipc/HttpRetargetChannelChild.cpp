@@ -5,11 +5,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "HttpLog.h"
+
 #include "HttpRetargetChannelChild.h"
 #include "mozilla/net/PHttpChannelChild.h"
 #include "mozilla/net/HttpChannelChild.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
+#include "mozilla/dom/ContentChild.h"
+
+using namespace mozilla::dom;
 
 namespace mozilla {
 namespace net {
@@ -35,6 +40,7 @@ HttpRetargetChannelChild::RecvOnTransportAndData(const nsresult& channelStatus,
 HttpRetargetChannelChild::HttpRetargetChannelChild(uint32_t aChannelId)
   : mChannelId(aChannelId)
 {
+  LOG(("HttpRetargetChannelChild::Constructor [this=%p]\n",this));
   MOZ_COUNT_CTOR(HttpRetargetChannelChild);
 }
 
@@ -46,6 +52,7 @@ HttpRetargetChannelChild::~HttpRetargetChannelChild()
 nsresult
 HttpRetargetChannelChild::Init(PHttpChannelChild* aHttpChannel)
 {
+  LOG(("HttpRetargetChannelChild::Init [this=%p httpChannel=%p]\n",this,aHttpChannel));
   PBackgroundChild* backgroundChild =
     mozilla::ipc::BackgroundChild::GetForCurrentThread();
 
@@ -59,7 +66,20 @@ HttpRetargetChannelChild::Init(PHttpChannelChild* aHttpChannel)
 
   mHttpChannel = aHttpChannel;
 
+  // Add a new entry in the hashtable.
+  ContentChild* contentChild = ContentChild::GetSingleton();
+  contentChild->AddHttpRetargetChannel(mChannelId, this);
+
   return NS_OK;
+}
+
+void
+HttpRetargetChannelChild::NotifyRedirect(uint32_t newChannelId)
+{
+  ContentChild* contentChild = ContentChild::GetSingleton();
+  contentChild->RemoveHttpRetargetChannel(mChannelId);
+  contentChild->AddHttpRetargetChannel(newChannelId, this);
+  mChannelId = newChannelId;
 }
 
 } // namespace net
