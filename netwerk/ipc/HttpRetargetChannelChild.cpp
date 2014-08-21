@@ -22,18 +22,43 @@ namespace net {
 class HttpChannelChild;
 
 bool
-HttpRetargetChannelChild::RecvOnTransportAndData(const nsresult& channelStatus,
-                                                 const nsresult& transportStatus,
-                                                 const uint64_t& progress,
-                                                 const uint64_t& progressMax,
-                                                 const nsCString& data,
-                                                 const uint64_t& offset,
-                                                 const uint32_t& count)
+HttpRetargetChannelChild::RecvOnTransportAndDataBackground(const nsresult& aChannelStatus,
+                                                           const nsresult& aTransportStatus,
+                                                           const uint64_t& aProgress,
+                                                           const uint64_t& aProgressMax,
+                                                           const nsCString& aData,
+                                                           const uint64_t& aOffset,
+                                                           const uint32_t& aCount)
 {
   MOZ_ASSERT(NS_IsMainThread());
   static_cast<HttpChannelChild*>(mHttpChannel)->
-    OnTransportAndData(channelStatus, transportStatus, progress,
-                       progressMax, data, offset, count);
+    OnTransportAndData(aChannelStatus, aTransportStatus, aProgress,
+                       aProgressMax, aData, aOffset, aCount);
+  return true;
+}
+
+bool
+HttpRetargetChannelChild::RecvOnProgressBackground(const uint64_t& aProgress,
+                                                   const uint64_t& aProgressMax)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  static_cast<HttpChannelChild*>(mHttpChannel)->OnProgress(aProgress, aProgressMax);
+  return true;
+}
+
+bool
+HttpRetargetChannelChild::RecvOnStatusBackground(const nsresult& aStatus)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  static_cast<HttpChannelChild*>(mHttpChannel)->OnStatus(aStatus);
+  return true;
+}
+
+bool
+HttpRetargetChannelChild::RecvOnStopRequestBackground(const nsresult& aStatusCode)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  static_cast<HttpChannelChild*>(mHttpChannel)->OnStopRequest(aStatusCode);
   return true;
 }
 
@@ -52,7 +77,7 @@ HttpRetargetChannelChild::~HttpRetargetChannelChild()
 nsresult
 HttpRetargetChannelChild::Init(PHttpChannelChild* aHttpChannel)
 {
-  LOG(("HttpRetargetChannelChild::Init [this=%p httpChannel=%p]\n",this,aHttpChannel));
+  LOG(("HttpRetargetChannelChild::Init [this=%p httpChannel=%p channelId=%d]\n",this,aHttpChannel,mChannelId));
   PBackgroundChild* backgroundChild =
     mozilla::ipc::BackgroundChild::GetForCurrentThread();
 
@@ -76,6 +101,7 @@ HttpRetargetChannelChild::Init(PHttpChannelChild* aHttpChannel)
 void
 HttpRetargetChannelChild::NotifyRedirect(uint32_t newChannelId)
 {
+  LOG(("HttpRetargetChannelChild::Redirect [this=%p httpChannel=%p, channelId=%d]\n",this,mHttpChannel,mChannelId));
   ContentChild* contentChild = ContentChild::GetSingleton();
   contentChild->RemoveHttpRetargetChannel(mChannelId);
   contentChild->AddHttpRetargetChannel(newChannelId, this);

@@ -14,13 +14,17 @@ async protocol PHttpRetargetChannel
   manager PBackground;
 
 child:
-  OnTransportAndData(nsresult channelStatus,
-                     nsresult transportStatus,
-                     uint64_t progress,
-                     uint64_t progressMax,
-                     nsCString data,
-                     uint64_t offset,
-                     uint32_t count);
+  OnTransportAndDataBackground(nsresult aChannelStatus,
+                               nsresult aTransportStatus,
+                               uint64_t aProgress,
+                               uint64_t aProgressMax,
+                               nsCString aData,
+                               uint64_t aOffset,
+                               uint32_t aCount);
+  OnProgressBackground(uint64_t aProgress,
+                       uint64_t aProgressMax);
+  OnStatusBackground(nsresult aStatus);
+  OnStopRequestBackground(nsresult aStatusCode);
 parent:
   __delete__();
 };

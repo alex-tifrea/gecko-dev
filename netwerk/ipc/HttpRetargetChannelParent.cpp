@@ -39,6 +39,37 @@ namespace dom {
 class ContentParent;
 
 //-----------------------------------------------------------------------------
+// Helper class for sending the `OnStopRequest` message to the child
+// via the background thread
+//-----------------------------------------------------------------------------
+
+class CallOnStopRequestRunnable : public nsRunnable
+{
+public:
+  CallOnStopRequestRunnable(PHttpRetargetChannelParent* aHttpRetargetChannelParent,
+                            const nsresult& aStatusCode)
+    : mStatusCode(aStatusCode)
+  {
+    AssertIsOnMainThread();
+    mHttpRetargetChannelParent =
+      static_cast<HttpRetargetChannelParent*>(aHttpRetargetChannelParent);
+  }
+
+  NS_IMETHOD Run()
+  {
+    AssertIsOnBackgroundThread();
+
+    (void) mHttpRetargetChannelParent->SendOnStopRequestBackground(mStatusCode);
+
+    return NS_OK;
+  }
+
+private:
+  const nsresult mStatusCode;
+  HttpRetargetChannelParent* mHttpRetargetChannelParent;
+};
+
+//-----------------------------------------------------------------------------
 // Helper class for sending a reference to the HttpRetargetChannelParent to the
 // Content actor on the main thread
 //-----------------------------------------------------------------------------
@@ -48,7 +79,7 @@ class AddToHashtableRunnable : public nsRunnable
 public:
   AddToHashtableRunnable(already_AddRefed<ContentParent> aContentParent,
                          PHttpRetargetChannelParent* aHttpRetargetChannelParent)
-    :  mContentParent(aContentParent)
+    : mContentParent(aContentParent)
   {
     AssertIsOnBackgroundThread();
     MOZ_ASSERT(mContentParent);
@@ -162,6 +193,15 @@ void
 HttpRetargetChannelParent::NotifyRedirect(uint32_t newChannelId)
 {
   mChannelId = newChannelId;
+}
+
+bool
+HttpRetargetChannelParent::ProcessOnStopRequest(const nsresult& aStatusCode)
+{
+  nsRefPtr<CallOnStopRequestRunnable> runnable =
+    new CallOnStopRequestRunnable(this, aStatusCode);
+  mBackgroundThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
+  return true;
 }
 
 } // namespace net

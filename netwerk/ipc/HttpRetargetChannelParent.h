@@ -26,6 +26,8 @@ public:
 
   virtual void NotifyRedirect(uint32_t newChannelId);
 
+  virtual bool ProcessOnStopRequest(const nsresult& aStatusCode);
+
   uint32_t GetChannelId() { return mChannelId; }
 
   nsIThread* GetBackgroundThread() { return mBackgroundThread; }

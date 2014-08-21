@@ -20,13 +20,20 @@ public:
   HttpRetargetChannelChild(uint32_t aChannelId);
   ~HttpRetargetChannelChild();
 
-  virtual bool RecvOnTransportAndData(const nsresult& channelStatus,
-                                      const nsresult& transportStatus,
-                                      const uint64_t& progress,
-                                      const uint64_t& progressMax,
-                                      const nsCString& data,
-                                      const uint64_t& offset,
-                                      const uint32_t& count);
+  virtual bool RecvOnTransportAndDataBackground(const nsresult& aChannelStatus,
+                                                const nsresult& aTransportStatus,
+                                                const uint64_t& aProgress,
+                                                const uint64_t& aProgressMax,
+                                                const nsCString& aData,
+                                                const uint64_t& aOffset,
+                                                const uint32_t& aCount);
+
+  virtual bool RecvOnProgressBackground(const uint64_t& aProgress,
+                                        const uint64_t& aProgressMax);
+
+  virtual bool RecvOnStatusBackground(const nsresult& aStatus);
+
+  virtual bool RecvOnStopRequestBackground(const nsresult& aStatusCode);
 
   uint32_t GetChannelId() { return mChannelId; }
 

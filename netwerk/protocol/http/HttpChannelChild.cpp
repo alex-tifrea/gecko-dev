@@ -975,6 +975,8 @@ HttpChannelChild::Redirect3Complete()
 NS_IMETHODIMP
 HttpChannelChild::ConnectParent(uint32_t id)
 {
+  LOG(("HttpChannelChild::ConnectParent [this=%p oldChannelId=%d newChannelId=%d]\n", this,mOldChannelId,mChannelId));
+
   mozilla::dom::TabChild* tabChild = nullptr;
   nsCOMPtr<nsITabChild> iTabChild;
   GetCallback(iTabChild);

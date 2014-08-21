@@ -793,8 +793,17 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
   mChannel->GetRedirectStart(&timing.redirectStart);
   mChannel->GetRedirectEnd(&timing.redirectEnd);
 
+  if (mIPCClosed)
+    return NS_ERROR_UNEXPECTED;
+
+  // Send the message to the child via `HttpRetargetChannel`.
+  if (!mHttpRetargetChannel ||
+        !static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannel)->
+        ProcessOnStopRequest(aStatusCode))
+    return NS_ERROR_UNEXPECTED;
+
   // Delete the correponding entry from
-  // ContentParent.mHttpRetargetChannels
+  // `ContentParent.mHttpRetargetChannels`
   ContentParent* contentParent =
     static_cast<ContentParent*>(this->Manager()->Manager());
   contentParent->RemoveHttpRetargetChannel(this->mChannelID);
@@ -835,13 +844,13 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
   // LOAD_BACKGROUND set.  In that case, they'll have garbage values, but
   // child doesn't use them.
   if (mIPCClosed || !mHttpRetargetChannel ||
-      !mHttpRetargetChannel->SendOnTransportAndData(channelStatus,
-                                                    mStoredStatus,
-                                                    mStoredProgress,
-                                                    mStoredProgressMax,
-                                                    data,
-                                                    aOffset,
-                                                    aCount)) {
+      !mHttpRetargetChannel->SendOnTransportAndDataBackground(channelStatus,
+                                                              mStoredStatus,
+                                                              mStoredProgress,
+                                                              mStoredProgressMax,
+                                                              data,
+                                                              aOffset,
+                                                              aCount)) {
     return NS_ERROR_UNEXPECTED;
   }
   return NS_OK;
@@ -868,7 +877,17 @@ HttpChannelParent::OnProgress(nsIRequest *aRequest,
     // Send OnProgress events to the child for data upload progress notifications
     // (i.e. status == NS_NET_STATUS_SENDING_TO) or if the channel has
     // LOAD_BACKGROUND set.
-    if (mIPCClosed || !SendOnProgress(aProgress, aProgressMax))
+    if (mIPCClosed)
+      return NS_ERROR_UNEXPECTED;
+
+    if (NS_IsMainThread() && !SendOnProgress(aProgress, aProgressMax))
+      return NS_ERROR_UNEXPECTED;
+
+    // If the `OnProgress` event is processed on the background thread in the
+    // parent, then send the message to the child via `HttpRetargetChannel`.
+    if (IsOnBackgroundThread() && (!mHttpRetargetChannel ||
+          !mHttpRetargetChannel->SendOnProgressBackground(aProgress,
+                                                          aProgressMax)))
       return NS_ERROR_UNEXPECTED;
   }
 
@@ -889,8 +908,18 @@ HttpChannelParent::OnStatus(nsIRequest *aRequest,
     return NS_OK;
   }
   // Otherwise, send to child now
-  if (mIPCClosed || !SendOnStatus(aStatus))
+  if (mIPCClosed)
     return NS_ERROR_UNEXPECTED;
+
+  if (NS_IsMainThread() && !SendOnStatus(aStatus))
+    return NS_ERROR_UNEXPECTED;
+
+  // If the `OnStatus` event is processed on the background thread in the
+  // parent, then send the message to the child via `HttpRetargetChannel`.
+  if (IsOnBackgroundThread() && (!mHttpRetargetChannel ||
+        !mHttpRetargetChannel->SendOnStatusBackground(aStatus)))
+    return NS_ERROR_UNEXPECTED;
+
   return NS_OK;
 }
 
