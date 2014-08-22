@@ -6,6 +6,10 @@
 
 include protocol PBackground;
 
+using class mozilla::net::nsHttpHeaderArray from "nsHttpHeaderArray.h";
+using class mozilla::net::nsHttpResponseHead from "nsHttpResponseHead.h";
+using mozilla::net::NetAddr from "mozilla/net/DNS.h";
+
 namespace mozilla {
 namespace net {
 
@@ -14,15 +18,27 @@ async protocol PHttpRetargetChannel
   manager PBackground;
 
 child:
-  OnTransportAndDataBackground(nsresult aChannelStatus,
-                               nsresult aTransportStatus,
-                               uint64_t aProgress,
-                               uint64_t aProgressMax,
-                               nsCString aData,
-                               uint64_t aOffset,
-                               uint32_t aCount);
-  OnProgressBackground(uint64_t aProgress,
-                       uint64_t aProgressMax);
+  OnStartRequestBackground(nsresult            channelStatus,
+                           nsHttpResponseHead  responseHead,
+                           bool                useResponseHead,
+                           nsHttpHeaderArray   requestHeaders,
+                           bool                isFromCache,
+                           bool                cacheEntryAvailable,
+                           uint32_t            cacheExpirationTime,
+                           nsCString           cachedCharset,
+                           nsCString           securityInfoSerialization,
+                           NetAddr             selfAddr,
+                           NetAddr             peerAddr,
+                           int16_t             redirectCount);
+  OnTransportAndDataBackground(nsresult   aChannelStatus,
+                               nsresult   aTransportStatus,
+                               uint64_t   aProgress,
+                               uint64_t   aProgressMax,
+                               nsCString  aData,
+                               uint64_t   aOffset,
+                               uint32_t   aCount);
+  OnProgressBackground(uint64_t   aProgress,
+                       uint64_t   aProgressMax);
   OnStatusBackground(nsresult aStatus);
   OnStopRequestBackground(nsresult aStatusCode);
 parent:

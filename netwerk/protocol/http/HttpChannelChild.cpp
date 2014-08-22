@@ -1043,7 +1043,7 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener *listener,
   HttpRetargetChannelChild* httpRetargetChannel =
     static_cast<HttpRetargetChannelChild*>(contentChild->
                                             GetHttpRetargetChannel(mOldChannelId));
-  httpRetargetChannel->NotifyRedirect(mChannelId);
+  httpRetargetChannel->NotifyRedirect(mChannelId, this);
 
 
   // We already have an open IPDL connection to the parent. If on-modify-request

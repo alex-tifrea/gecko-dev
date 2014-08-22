@@ -26,6 +26,19 @@ public:
 
   virtual void NotifyRedirect(uint32_t newChannelId);
 
+  virtual bool ProcessOnStartRequestBackground(const nsresult& channelStatus,
+                                               const nsHttpResponseHead& responseHead,
+                                               const bool& useResponseHead,
+                                               const nsHttpHeaderArray& requestHeaders,
+                                               const bool& isFromCache,
+                                               const bool& cacheEntryAvailable,
+                                               const uint32_t& cacheExpirationTime,
+                                               const nsCString& cachedCharset,
+                                               const nsCString& securityInfoSerialization,
+                                               const NetAddr& selfAddr,
+                                               const NetAddr& peerAddr,
+                                               const int16_t& redirectCount);
+
   virtual bool ProcessOnStopRequest(const nsresult& aStatusCode);
 
   uint32_t GetChannelId() { return mChannelId; }

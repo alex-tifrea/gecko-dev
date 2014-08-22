@@ -21,6 +21,41 @@ namespace net {
 
 class HttpChannelChild;
 
+HttpRetargetChannelChild::HttpRetargetChannelChild(uint32_t aChannelId)
+  : mChannelId(aChannelId)
+{
+  LOG(("HttpRetargetChannelChild::Constructor [this=%p]\n",this));
+  MOZ_COUNT_CTOR(HttpRetargetChannelChild);
+}
+
+HttpRetargetChannelChild::~HttpRetargetChannelChild()
+{
+  MOZ_COUNT_DTOR(HttpRetargetChannelChild);
+}
+
+bool
+HttpRetargetChannelChild::RecvOnStartRequestBackground(const nsresult& channelStatus,
+                                                       const nsHttpResponseHead& responseHead,
+                                                       const bool& useResponseHead,
+                                                       const nsHttpHeaderArray& requestHeaders,
+                                                       const bool& isFromCache,
+                                                       const bool& cacheEntryAvailable,
+                                                       const uint32_t& cacheExpirationTime,
+                                                       const nsCString& cachedCharset,
+                                                       const nsCString& securityInfoSerialization,
+                                                       const NetAddr& selfAddr,
+                                                       const NetAddr& peerAddr,
+                                                       const int16_t& redirectCount)
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  static_cast<HttpChannelChild*>(mHttpChannel)->
+    OnStartRequest(channelStatus, responseHead, useResponseHead, requestHeaders,
+                   isFromCache, cacheEntryAvailable, cacheExpirationTime,
+                   cachedCharset, securityInfoSerialization, selfAddr,
+                   peerAddr);
+  return true;
+}
+
 bool
 HttpRetargetChannelChild::RecvOnTransportAndDataBackground(const nsresult& aChannelStatus,
                                                            const nsresult& aTransportStatus,
@@ -62,18 +97,6 @@ HttpRetargetChannelChild::RecvOnStopRequestBackground(const nsresult& aStatusCod
   return true;
 }
 
-HttpRetargetChannelChild::HttpRetargetChannelChild(uint32_t aChannelId)
-  : mChannelId(aChannelId)
-{
-  LOG(("HttpRetargetChannelChild::Constructor [this=%p]\n",this));
-  MOZ_COUNT_CTOR(HttpRetargetChannelChild);
-}
-
-HttpRetargetChannelChild::~HttpRetargetChannelChild()
-{
-  MOZ_COUNT_DTOR(HttpRetargetChannelChild);
-}
-
 nsresult
 HttpRetargetChannelChild::Init(PHttpChannelChild* aHttpChannel)
 {
@@ -99,12 +122,14 @@ HttpRetargetChannelChild::Init(PHttpChannelChild* aHttpChannel)
 }
 
 void
-HttpRetargetChannelChild::NotifyRedirect(uint32_t newChannelId)
+HttpRetargetChannelChild::NotifyRedirect(uint32_t newChannelId, PHttpChannelChild* newChannel)
 {
-  LOG(("HttpRetargetChannelChild::Redirect [this=%p httpChannel=%p, channelId=%d]\n",this,mHttpChannel,mChannelId));
+  LOG(("HttpRetargetChannelChild::Redirect [this=%p oldHttpChannel=%p, newHttpChannel=%p, oldChannelId=%d, newChannelId=%d]\n",
+        this, mHttpChannel, newChannel, mChannelId, newChannelId));
   ContentChild* contentChild = ContentChild::GetSingleton();
   contentChild->RemoveHttpRetargetChannel(mChannelId);
   contentChild->AddHttpRetargetChannel(newChannelId, this);
+  mHttpChannel = newChannel;
   mChannelId = newChannelId;
 }
 

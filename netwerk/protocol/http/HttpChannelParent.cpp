@@ -740,6 +740,27 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
       NS_SerializeToString(secInfoSer, secInfoSerialization);
   }
 
+  uint16_t redirectCount = 0;
+  mChannel->GetRedirectCount(&redirectCount);
+  LOG(("HttpChannelParent::I have sent OnStartRequest to the child: [this=%p, channelId=%d]\n",this,mChannelID));
+
+  if (mIPCClosed)
+    return NS_ERROR_UNEXPECTED;
+
+  // Send the message to the child via `HttpRetargetChannel`.
+  if (!mHttpRetargetChannel ||
+        !static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannel)->
+        ProcessOnStartRequestBackground(channelStatus,
+                                        responseHead ? *responseHead : nsHttpResponseHead(),
+                                        !!responseHead,
+                                        requestHead->Headers(),
+                                        isFromCache,
+                                        mCacheEntry ? true : false,
+                                        expirationTime, cachedCharset, secInfoSerialization,
+                                        mChannel->GetSelfAddr(), mChannel->GetPeerAddr(),
+                                        redirectCount))
+    return NS_ERROR_UNEXPECTED;
+
   nsresult rv;
   nsCOMPtr<nsIThreadRetargetableRequest> threadRetargetableRequest =
     do_QueryInterface(aRequest, &rv);
@@ -753,21 +774,6 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
     NS_WARNING("Failed to retarget data delivery to the background thread.");
   }
 
-  uint16_t redirectCount = 0;
-  mChannel->GetRedirectCount(&redirectCount);
-  if (mIPCClosed ||
-      !SendOnStartRequest(channelStatus,
-                          responseHead ? *responseHead : nsHttpResponseHead(),
-                          !!responseHead,
-                          requestHead->Headers(),
-                          isFromCache,
-                          mCacheEntry ? true : false,
-                          expirationTime, cachedCharset, secInfoSerialization,
-                          mChannel->GetSelfAddr(), mChannel->GetPeerAddr(),
-                          redirectCount))
-  {
-    return NS_ERROR_UNEXPECTED;
-  }
   return NS_OK;
 }
 
@@ -843,6 +849,7 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
   // mStoredStatus/mStoredProgress(Max) to appropriate values, unless
   // LOAD_BACKGROUND set.  In that case, they'll have garbage values, but
   // child doesn't use them.
+  LOG(("HttpChannelParent::I have sent OnTransportAndData to the child: [this=%p, channelId=%d]\n",this,mChannelID));
   if (mIPCClosed || !mHttpRetargetChannel ||
       !mHttpRetargetChannel->SendOnTransportAndDataBackground(channelStatus,
                                                               mStoredStatus,

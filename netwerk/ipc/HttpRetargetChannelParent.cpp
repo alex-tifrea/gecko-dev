@@ -17,10 +17,17 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/PBackgroundParent.h"
 #include "mozilla/net/HttpChannelParent.h"
+#include "nsHttpHeaderArray.h"
+#include "nsHttpResponseHead.h"
 
 using namespace mozilla::dom;
-using namespace mozilla::net;
 using namespace mozilla::ipc;
+
+typedef mozilla::net::PHttpRetargetChannelParent PHttpRetargetChannelParent;
+typedef mozilla::net::HttpRetargetChannelParent HttpRetargetChannelParent;
+typedef mozilla::net::PHttpChannelParent PHttpChannelParent;
+typedef mozilla::net::HttpChannelParent HttpChannelParent;
+typedef mozilla::net::NetAddr NetAddr;
 
 namespace {
 
@@ -37,6 +44,82 @@ namespace mozilla {
 namespace dom {
 
 class ContentParent;
+
+//-----------------------------------------------------------------------------
+// Helper class for sending the `OnStartRequest` message to the child
+// via the background thread
+//-----------------------------------------------------------------------------
+
+class CallOnStartRequestRunnable : public nsRunnable
+{
+public:
+  CallOnStartRequestRunnable(PHttpRetargetChannelParent* aHttpRetargetChannelParent,
+                             const nsresult& channelStatus,
+                             const mozilla::net::nsHttpResponseHead& responseHead,
+                             const bool& useResponseHead,
+                             const mozilla::net::nsHttpHeaderArray& requestHeaders,
+                             const bool& isFromCache,
+                             const bool& cacheEntryAvailable,
+                             const uint32_t& cacheExpirationTime,
+                             const nsCString& cachedCharset,
+                             const nsCString& securityInfoSerialization,
+                             const NetAddr& selfAddr,
+                             const NetAddr& peerAddr,
+                             const int16_t& redirectCount)
+    : mChannelStatus(channelStatus)
+    , mResponseHead(responseHead)
+    , mUseResponseHead(useResponseHead)
+    , mRequestHeaders(requestHeaders)
+    , mIsFromCache(isFromCache)
+    , mCacheEntryAvailable(cacheEntryAvailable)
+    , mCacheExpirationTime(cacheExpirationTime)
+    , mCachedCharset(cachedCharset)
+    , mSecurityInfoSerialization(securityInfoSerialization)
+    , mSelfAddr(selfAddr)
+    , mPeerAddr(peerAddr)
+    , mRedirectCount(redirectCount)
+  {
+    AssertIsOnMainThread();
+    mHttpRetargetChannelParent =
+      static_cast<HttpRetargetChannelParent*>(aHttpRetargetChannelParent);
+  }
+
+  NS_IMETHOD Run()
+  {
+    AssertIsOnBackgroundThread();
+
+    (void) mHttpRetargetChannelParent->
+      SendOnStartRequestBackground(mChannelStatus,
+                                   mResponseHead,
+                                   mUseResponseHead,
+                                   mRequestHeaders,
+                                   mIsFromCache,
+                                   mCacheEntryAvailable,
+                                   mCacheExpirationTime,
+                                   mCachedCharset,
+                                   mSecurityInfoSerialization,
+                                   mSelfAddr,
+                                   mPeerAddr,
+                                   mRedirectCount);
+
+    return NS_OK;
+  }
+
+private:
+  const nsresult              mChannelStatus;
+  const mozilla::net::nsHttpResponseHead    mResponseHead;
+  const bool                  mUseResponseHead;
+  const mozilla::net::nsHttpHeaderArray     mRequestHeaders;
+  const bool                  mIsFromCache;
+  const bool                  mCacheEntryAvailable;
+  const uint32_t              mCacheExpirationTime;
+  const nsCString             mCachedCharset;
+  const nsCString             mSecurityInfoSerialization;
+  const NetAddr               mSelfAddr;
+  const NetAddr               mPeerAddr;
+  const int16_t               mRedirectCount;
+  HttpRetargetChannelParent*  mHttpRetargetChannelParent;
+};
 
 //-----------------------------------------------------------------------------
 // Helper class for sending the `OnStopRequest` message to the child
@@ -193,6 +276,38 @@ void
 HttpRetargetChannelParent::NotifyRedirect(uint32_t newChannelId)
 {
   mChannelId = newChannelId;
+}
+
+bool
+HttpRetargetChannelParent::ProcessOnStartRequestBackground(const nsresult& channelStatus,
+                                                           const nsHttpResponseHead& responseHead,
+                                                           const bool& useResponseHead,
+                                                           const nsHttpHeaderArray& requestHeaders,
+                                                           const bool& isFromCache,
+                                                           const bool& cacheEntryAvailable,
+                                                           const uint32_t& cacheExpirationTime,
+                                                           const nsCString& cachedCharset,
+                                                           const nsCString& securityInfoSerialization,
+                                                           const NetAddr& selfAddr,
+                                                           const NetAddr& peerAddr,
+                                                           const int16_t& redirectCount)
+{
+  nsRefPtr<CallOnStartRequestRunnable> runnable =
+    new CallOnStartRequestRunnable(this,
+                                   channelStatus,
+                                   responseHead,
+                                   useResponseHead,
+                                   requestHeaders,
+                                   isFromCache,
+                                   cacheEntryAvailable,
+                                   cacheExpirationTime,
+                                   cachedCharset,
+                                   securityInfoSerialization,
+                                   selfAddr,
+                                   peerAddr,
+                                   redirectCount);
+  mBackgroundThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
+  return true;
 }
 
 bool
