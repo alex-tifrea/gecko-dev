@@ -43,11 +43,13 @@ public:
 
   uint32_t GetChannelId() { return mChannelId; }
 
-  nsIThread* GetBackgroundThread() { return mBackgroundThread; }
+  nsCOMPtr<nsIThread> GetBackgroundThread() { return mBackgroundThread; }
+
+  bool GetIPCClosed() { return mIPCClosed; }
 
 private:
   uint32_t mChannelId;
-  nsIThread* mBackgroundThread;
+  nsCOMPtr<nsIThread> mBackgroundThread;
   bool mIPCClosed;
 };
 

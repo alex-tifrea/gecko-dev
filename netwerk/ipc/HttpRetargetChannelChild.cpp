@@ -94,6 +94,7 @@ HttpRetargetChannelChild::RecvOnStopRequestBackground(const nsresult& aStatusCod
 {
   MOZ_ASSERT(NS_IsMainThread());
   static_cast<HttpChannelChild*>(mHttpChannel)->OnStopRequest(aStatusCode);
+  mHttpChannel = nullptr;
   return true;
 }
 

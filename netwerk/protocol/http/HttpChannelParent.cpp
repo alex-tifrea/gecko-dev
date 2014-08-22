@@ -744,6 +744,19 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   mChannel->GetRedirectCount(&redirectCount);
   LOG(("HttpChannelParent::I have sent OnStartRequest to the child: [this=%p, channelId=%d]\n",this,mChannelID));
 
+  nsresult rv;
+  nsCOMPtr<nsIThreadRetargetableRequest> threadRetargetableRequest =
+    do_QueryInterface(aRequest, &rv);
+  nsCOMPtr<nsIThread> backgroundThread = static_cast<HttpRetargetChannelParent*>(
+      mHttpRetargetChannel)->GetBackgroundThread();
+  if (threadRetargetableRequest) {
+    rv = threadRetargetableRequest->RetargetDeliveryTo(backgroundThread);
+  }
+
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to retarget data delivery to the background thread.");
+  }
+
   if (mIPCClosed)
     return NS_ERROR_UNEXPECTED;
 
@@ -760,19 +773,6 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
                                         mChannel->GetSelfAddr(), mChannel->GetPeerAddr(),
                                         redirectCount))
     return NS_ERROR_UNEXPECTED;
-
-  nsresult rv;
-  nsCOMPtr<nsIThreadRetargetableRequest> threadRetargetableRequest =
-    do_QueryInterface(aRequest, &rv);
-  nsIThread* backgroundThread = static_cast<HttpRetargetChannelParent*>(
-      mHttpRetargetChannel)->GetBackgroundThread();
-  if (threadRetargetableRequest) {
-    rv = threadRetargetableRequest->RetargetDeliveryTo(backgroundThread);
-  }
-
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Failed to retarget data delivery to the background thread.");
-  }
 
   return NS_OK;
 }
@@ -817,6 +817,7 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
 
   if (mIPCClosed || !SendOnStopRequest(aStatusCode, timing))
     return NS_ERROR_UNEXPECTED;
+  mHttpRetargetChannel = nullptr;
 
   return NS_OK;
 }

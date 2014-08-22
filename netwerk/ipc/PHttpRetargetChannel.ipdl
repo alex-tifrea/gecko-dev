@@ -6,8 +6,8 @@
 
 include protocol PBackground;
 
-using class mozilla::net::nsHttpHeaderArray from "nsHttpHeaderArray.h";
-using class mozilla::net::nsHttpResponseHead from "nsHttpResponseHead.h";
+using class mozilla::net::nsHttpHeaderArray from "mozilla/net/PHttpChannelParent.h";
+using class mozilla::net::nsHttpResponseHead from "mozilla/net/PHttpChannelParent.h";
 using mozilla::net::NetAddr from "mozilla/net/DNS.h";
 
 namespace mozilla {

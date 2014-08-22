@@ -7,18 +7,11 @@
 
 #include "HttpLog.h"
 
-#include "mozilla/Assertions.h"
-#include "nsThreadUtils.h"
-#include "nsTraceRefcnt.h"
-#include "nsXULAppAPI.h"
 #include "mozilla/net/HttpRetargetChannelParent.h"
-#include "mozilla/net/PHttpRetargetChannelParent.h"
 #include "BackgroundParent.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/PBackgroundParent.h"
 #include "mozilla/net/HttpChannelParent.h"
-#include "nsHttpHeaderArray.h"
-#include "nsHttpResponseHead.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
@@ -55,9 +48,9 @@ class CallOnStartRequestRunnable : public nsRunnable
 public:
   CallOnStartRequestRunnable(PHttpRetargetChannelParent* aHttpRetargetChannelParent,
                              const nsresult& channelStatus,
-                             const mozilla::net::nsHttpResponseHead& responseHead,
+                             const net::nsHttpResponseHead& responseHead,
                              const bool& useResponseHead,
-                             const mozilla::net::nsHttpHeaderArray& requestHeaders,
+                             const net::nsHttpHeaderArray& requestHeaders,
                              const bool& isFromCache,
                              const bool& cacheEntryAvailable,
                              const uint32_t& cacheExpirationTime,
@@ -88,6 +81,9 @@ public:
   {
     AssertIsOnBackgroundThread();
 
+    if (mHttpRetargetChannelParent->GetIPCClosed())
+      return NS_ERROR_UNEXPECTED;
+
     (void) mHttpRetargetChannelParent->
       SendOnStartRequestBackground(mChannelStatus,
                                    mResponseHead,
@@ -106,19 +102,19 @@ public:
   }
 
 private:
-  const nsresult              mChannelStatus;
-  const mozilla::net::nsHttpResponseHead    mResponseHead;
-  const bool                  mUseResponseHead;
-  const mozilla::net::nsHttpHeaderArray     mRequestHeaders;
-  const bool                  mIsFromCache;
-  const bool                  mCacheEntryAvailable;
-  const uint32_t              mCacheExpirationTime;
-  const nsCString             mCachedCharset;
-  const nsCString             mSecurityInfoSerialization;
-  const NetAddr               mSelfAddr;
-  const NetAddr               mPeerAddr;
-  const int16_t               mRedirectCount;
-  HttpRetargetChannelParent*  mHttpRetargetChannelParent;
+  const nsresult                  mChannelStatus;
+  const net::nsHttpResponseHead   mResponseHead;
+  const bool                      mUseResponseHead;
+  const net::nsHttpHeaderArray    mRequestHeaders;
+  const bool                      mIsFromCache;
+  const bool                      mCacheEntryAvailable;
+  const uint32_t                  mCacheExpirationTime;
+  const nsCString                 mCachedCharset;
+  const nsCString                 mSecurityInfoSerialization;
+  const NetAddr                   mSelfAddr;
+  const NetAddr                   mPeerAddr;
+  const int16_t                   mRedirectCount;
+  HttpRetargetChannelParent*      mHttpRetargetChannelParent;
 };
 
 //-----------------------------------------------------------------------------
@@ -141,6 +137,9 @@ public:
   NS_IMETHOD Run()
   {
     AssertIsOnBackgroundThread();
+
+    if (mHttpRetargetChannelParent->GetIPCClosed())
+      return NS_ERROR_UNEXPECTED;
 
     (void) mHttpRetargetChannelParent->SendOnStopRequestBackground(mStatusCode);
 
