@@ -804,9 +804,17 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
 
   // Send the message to the child via `HttpRetargetChannel`.
   if (!mHttpRetargetChannel ||
-        !static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannel)->
+      !static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannel)->
         ProcessOnStopRequest(aStatusCode))
     return NS_ERROR_UNEXPECTED;
+
+  // TODO: by doing this we make sure the ref count for |this| doesn't hit 0 too
+  // early  (so now |this| will not be destroyed to early). But I have to put a
+  // break point in HttpChannelChild::Release and see where it is called so that
+  // I can make sure that in the end, the ref count for |this| will eventually
+  // get to 0 (otherwise it will mean that it leaked)
+  // Hold onto this until the child receives OnStopRequest.
+  this->AddRef();
 
   // Delete the correponding entry from
   // `ContentParent.mHttpRetargetChannels`

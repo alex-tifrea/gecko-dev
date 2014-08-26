@@ -84,6 +84,7 @@ public:
     if (mHttpRetargetChannelParent->GetIPCClosed())
       return NS_ERROR_UNEXPECTED;
 
+    // TODO: unused << instead of void
     (void) mHttpRetargetChannelParent->
       SendOnStartRequestBackground(mChannelStatus,
                                    mResponseHead,
