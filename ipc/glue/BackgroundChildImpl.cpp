@@ -129,11 +129,11 @@ BackgroundChildImpl::DeallocPBackgroundTestChild(PBackgroundTestChild* aActor)
 }
 
 PHttpRetargetChannelChild*
-BackgroundChildImpl::AllocPHttpRetargetChannelChild(const uint32_t& channelId)
+BackgroundChildImpl::AllocPHttpRetargetChannelChild(const uint32_t& aChannelId)
 {
   AssertIsInChildProcess();
 
-  return new HttpRetargetChannelChild(channelId);
+  return new HttpRetargetChannelChild();
 }
 
 bool

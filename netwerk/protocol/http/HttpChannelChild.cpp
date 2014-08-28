@@ -42,8 +42,7 @@ namespace net {
 // HttpChannelChild
 //-----------------------------------------------------------------------------
 
-HttpChannelChild::HttpChannelChild(uint32_t aChannelId,
-                                   HttpRetargetChannelChild* aHttpRetargetChannel)
+HttpChannelChild::HttpChannelChild(uint32_t aChannelId)
   : HttpAsyncAborter<HttpChannelChild>(MOZ_THIS_IN_INITIALIZER_LIST())
   , mIsFromCache(false)
   , mCacheEntryAvailable(false)
@@ -55,11 +54,11 @@ HttpChannelChild::HttpChannelChild(uint32_t aChannelId,
   , mFlushedForDiversion(false)
   , mSuspendSent(false)
   , mOldChannelId(0)
+  , mHttpRetargetChannel(nullptr)
+  , mChannelId(aChannelId)
 {
   LOG(("Creating HttpChannelChild @%x\n", this));
 
-  mChannelId = aChannelId;
-  mHttpRetargetChannel = aHttpRetargetChannel;
   mChannelCreationTime = PR_Now();
   mChannelCreationTimestamp = TimeStamp::Now();
   mAsyncOpenTime = TimeStamp::Now();
@@ -978,6 +977,16 @@ HttpChannelChild::Redirect3Complete()
   mRedirectChannelChild = nullptr;
 }
 
+void
+HttpChannelChild::CreateHttpRetargetChannel()
+{
+  mHttpRetargetChannel = new HttpRetargetChannelChild();
+  // IPDL now owns this object (more specifically, the actor in the parent
+  // process is now created and the connection between the two actors is
+  // now established)
+  mHttpRetargetChannel->Init(this);
+}
+
 //-----------------------------------------------------------------------------
 // HttpChannelChild::nsIChildChannel
 //-----------------------------------------------------------------------------
@@ -1290,6 +1299,9 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
       }
     }
   }
+
+  // Create the `HttpRetargetChannelChild` object.
+  CreateHttpRetargetChannel();
 
   //
   // Send request to the chrome process...

@@ -63,8 +63,7 @@ public:
   NS_DECL_NSIHTTPCHANNELCHILD
   NS_DECL_NSIDIVERTABLECHANNEL
 
-  HttpChannelChild(uint32_t aChannelId,
-                   HttpRetargetChannelChild* aHttpRetargetChannel);
+  HttpChannelChild(uint32_t aChannelId);
 
   // Methods HttpBaseChannel didn't implement for us or that we override.
   //
@@ -107,6 +106,10 @@ public:
   {
     mHttpRetargetChannel = aHttpRetargetChannel;
   }
+
+  uint32_t GetChannelId() { return mChannelId; }
+
+  void SetChannelId(uint32_t aChannelId) { mChannelId = aChannelId; }
 
 protected:
   bool RecvOnStartRequest(const nsresult& channelStatus,
@@ -176,6 +179,8 @@ private:
   // `mOldChannelId` is used when redirecting
   uint32_t mOldChannelId;
 
+  uint32_t mChannelId;
+
   HttpRetargetChannelChild* mHttpRetargetChannel;
 
   // true after successful AsyncOpen until OnStopRequest completes.
@@ -211,6 +216,9 @@ private:
                       const uint32_t& redirectFlags,
                       const nsHttpResponseHead& responseHead);
   void Redirect3Complete();
+
+  void CreateHttpRetargetChannel();
+
   void DeleteSelf();
 
   friend class AssociateApplicationCacheEvent;

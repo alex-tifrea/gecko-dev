@@ -74,7 +74,7 @@ protected:
   virtual PHttpRetargetChannelChild*
 
   virtual mozilla::net::PHttpRetargetChannelChild*
-  AllocPHttpRetargetChannelChild(const uint32_t& channelId) MOZ_OVERRIDE;
+  AllocPHttpRetargetChannelChild(const uint32_t& aChannelId) MOZ_OVERRIDE;
 
   virtual bool
   DeallocPHttpRetargetChannelChild(mozilla::net::PHttpRetargetChannelChild* aActor) MOZ_OVERRIDE;

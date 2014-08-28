@@ -19,7 +19,7 @@ class HttpRetargetChannelChild MOZ_FINAL :
   public PHttpRetargetChannelChild
 {
 public:
-  HttpRetargetChannelChild(uint32_t aChannelId);
+  HttpRetargetChannelChild();
   ~HttpRetargetChannelChild();
 
   virtual bool RecvOnStartRequestBackground(const nsresult& channelStatus,

@@ -1709,19 +1709,22 @@ nsHttpHandler::NewProxiedChannel(nsIURI *uri,
 
     if (IsNeckoChild()) {
         uint32_t channelID = GenerateChannelID();
-        HttpRetargetChannelChild* httpRetargetChannel =
-            new HttpRetargetChannelChild(channelID);
-        //TODO: Be careful: when redirecting, the HttpChannelChild holds a
-        //reference to a wrong HttpRetargetChannelChild until
-        //Redirect3Complete is called
-        httpChannel = new HttpChannelChild(channelID,
-                                           httpRetargetChannel);
+//         // TODO: no longer create httpRetargetChannel here, but rather in
+//         // HttpChannelChild::AsyncOpen(when not redirecting) / Redirect1Begin (when redirecting)
+//         HttpRetargetChannelChild* httpRetargetChannel =
+//             new HttRetargetChannelChild(channelID);
+//         //TODO: Be careful: when redirecting, the HttpChannelChild holds a
+//         //reference to a wrong HttpRetargetChannelChild until
+//         //Redirect3Complete is called
+//         // TODO: I can only pass channelID as argument; get rid of passing
+//         // httpRetargetChannel
+        httpChannel = new HttpChannelChild(channelID);
 
-        // IPDL now owns this object (more specifically, the actor in the parent
-        // process is now created and the connection between the two actors is
-        // now established)
-        rv = httpRetargetChannel->
-                Init(static_cast<HttpChannelChild*>(httpChannel.get()));
+//         // IPDL now owns this object (more specifically, the actor in the parent
+//         // process is now created and the connection between the two actors is
+//         // now established)
+//         rv = httpRetargetChannel->
+//                 Init(static_cast<HttpChannelChild*>(httpChannel.get()));
         if (NS_FAILED(rv))
             return rv;
 

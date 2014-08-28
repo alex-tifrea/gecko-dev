@@ -21,8 +21,7 @@ namespace net {
 
 class HttpChannelChild;
 
-HttpRetargetChannelChild::HttpRetargetChannelChild(uint32_t aChannelId)
-  : mChannelId(aChannelId)
+HttpRetargetChannelChild::HttpRetargetChannelChild()
 {
   LOG(("HttpRetargetChannelChild::Constructor [this=%p]\n",this));
   MOZ_COUNT_CTOR(HttpRetargetChannelChild);
@@ -105,7 +104,9 @@ HttpRetargetChannelChild::RecvOnStopRequestBackground(const nsresult& aStatusCod
 nsresult
 HttpRetargetChannelChild::Init(PHttpChannelChild* aHttpChannel)
 {
-  LOG(("HttpRetargetChannelChild::Init [this=%p httpChannel=%p channelId=%d]\n",this,aHttpChannel,mChannelId));
+  mChannelId = static_cast<HttpChannelChild*>(aHttpChannel)->GetChannelId();
+  LOG(("HttpRetargetChannelChild::Init [this=%p httpChannel=%p channelId=%d]\n",
+        this,aHttpChannel,mChannelId));
   PBackgroundChild* backgroundChild =
     mozilla::ipc::BackgroundChild::GetForCurrentThread();
 
@@ -129,7 +130,7 @@ HttpRetargetChannelChild::Init(PHttpChannelChild* aHttpChannel)
 void
 HttpRetargetChannelChild::NotifyRedirect(uint32_t newChannelId, PHttpChannelChild* newChannel)
 {
-  LOG(("HttpRetargetChannelChild::Redirect [this=%p oldHttpChannel=%p, newHttpChannel=%p, oldChannelId=%d, newChannelId=%d]\n",
+  LOG(("HttpRetargetChannelChild::Redirect [this=%p,oldHttpChannel=%p,newHttpChannel=%p,oldChannelId=%d,newChannelId=%d]\n",
         this, mHttpChannel, newChannel, mChannelId, newChannelId));
   ContentChild* contentChild = ContentChild::GetSingleton();
   contentChild->RemoveHttpRetargetChannel(mChannelId);
