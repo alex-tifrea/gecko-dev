@@ -12,6 +12,8 @@
 #include "mozilla/unused.h"
 #include "nsIRedirectChannelRegistrar.h"
 #include "nsIHttpEventSink.h"
+#include "mozilla/net/PHttpRetargetChannelParent.h"
+#include "mozilla/net/HttpRetargetChannelParent.h"
 
 using mozilla::unused;
 
@@ -213,6 +215,18 @@ HttpChannelParentListener::OnRedirectResult(bool succeeded)
   }
 
   if (succeeded) {
+    // TODO: create the link to the HttpRetargetChannel
+    PHttpRetargetChannelParent* httpRetargetChannel =
+      static_cast<HttpChannelParent*>(mNextListener.get())->
+        GetHttpRetargetChannel();
+    HttpChannelParent* tmp = static_cast<HttpChannelParent*>(redirectChannel.get());
+    tmp->SetHttpRetargetChannel(httpRetargetChannel);
+    static_cast<HttpRetargetChannelParent*>(httpRetargetChannel)->
+      NotifyRedirect(tmp->GetChannelId());
+    static_cast<HttpChannelParent*>(mNextListener.get())->
+      SetHttpRetargetChannel(nullptr);
+
+
     // Switch to redirect channel and delete the old one.
     nsCOMPtr<nsIParentChannel> parent;
     parent = do_QueryInterface(mNextListener);

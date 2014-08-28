@@ -1711,12 +1711,17 @@ nsHttpHandler::NewProxiedChannel(nsIURI *uri,
         uint32_t channelID = GenerateChannelID();
         HttpRetargetChannelChild* httpRetargetChannel =
             new HttpRetargetChannelChild(channelID);
-        httpChannel = new HttpChannelChild(channelID);
+        //TODO: Be careful: when redirecting, the HttpChannelChild holds a
+        //reference to a wrong HttpRetargetChannelChild until
+        //Redirect3Complete is called
+        httpChannel = new HttpChannelChild(channelID,
+                                           httpRetargetChannel);
 
         // IPDL now owns this object (more specifically, the actor in the parent
         // process is now created and the connection between the two actors is
         // now established)
-        rv = httpRetargetChannel->Init(static_cast<HttpChannelChild*>(httpChannel.get()));
+        rv = httpRetargetChannel->
+                Init(static_cast<HttpChannelChild*>(httpChannel.get()));
         if (NS_FAILED(rv))
             return rv;
 

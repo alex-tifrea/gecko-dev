@@ -30,6 +30,8 @@
 #include "nsIDivertableChannel.h"
 #include "mozilla/net/DNS.h"
 #include "mozilla/ipc/PBackgroundChild.h"
+#include "mozilla/net/PHttpRetargetChannelChild.h"
+#include "mozilla/net/HttpRetargetChannelChild.h"
 
 using namespace mozilla::ipc;
 
@@ -61,7 +63,8 @@ public:
   NS_DECL_NSIHTTPCHANNELCHILD
   NS_DECL_NSIDIVERTABLECHANNEL
 
-  HttpChannelChild(uint32_t aChannelId);
+  HttpChannelChild(uint32_t aChannelId,
+                   HttpRetargetChannelChild* aHttpRetargetChannel);
 
   // Methods HttpBaseChannel didn't implement for us or that we override.
   //
@@ -97,6 +100,13 @@ public:
   bool IsSuspended();
 
   void FlushedForDiversion();
+
+  HttpRetargetChannelChild* GetHttpRetargetChannel() { return mHttpRetargetChannel; }
+
+  void SetHttpRetargetChannel(HttpRetargetChannelChild* aHttpRetargetChannel)
+  {
+    mHttpRetargetChannel = aHttpRetargetChannel;
+  }
 
 protected:
   bool RecvOnStartRequest(const nsresult& channelStatus,
@@ -162,8 +172,11 @@ private:
   // diverting callbacks to parent.
   bool mSuspendSent;
 
+  // TODO: I think you can get rid of this now
   // `mOldChannelId` is used when redirecting
   uint32_t mOldChannelId;
+
+  HttpRetargetChannelChild* mHttpRetargetChannel;
 
   // true after successful AsyncOpen until OnStopRequest completes.
   bool RemoteChannelExists() { return mIPCOpen && !mKeptAlive; }

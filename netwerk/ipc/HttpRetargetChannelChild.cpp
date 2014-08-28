@@ -47,6 +47,7 @@ HttpRetargetChannelChild::RecvOnStartRequestBackground(const nsresult& channelSt
                                                        const NetAddr& peerAddr,
                                                        const int16_t& redirectCount)
 {
+  LOG(("HttpRetargetChannelChild::OnStartRequest [this=%p channelId=%d]\n",this,mChannelId));
   MOZ_ASSERT(NS_IsMainThread());
   static_cast<HttpChannelChild*>(mHttpChannel)->
     OnStartRequest(channelStatus, responseHead, useResponseHead, requestHeaders,
@@ -65,6 +66,7 @@ HttpRetargetChannelChild::RecvOnTransportAndDataBackground(const nsresult& aChan
                                                            const uint64_t& aOffset,
                                                            const uint32_t& aCount)
 {
+  LOG(("HttpRetargetChannelChild::OnTransportAndData [this=%p channelId=%d]\n",this,mChannelId));
   MOZ_ASSERT(NS_IsMainThread());
   static_cast<HttpChannelChild*>(mHttpChannel)->
     OnTransportAndData(aChannelStatus, aTransportStatus, aProgress,
@@ -76,6 +78,7 @@ bool
 HttpRetargetChannelChild::RecvOnProgressBackground(const uint64_t& aProgress,
                                                    const uint64_t& aProgressMax)
 {
+  LOG(("HttpRetargetChannelChild::OnProgress [this=%p channelId=%d]\n",this,mChannelId));
   MOZ_ASSERT(NS_IsMainThread());
   static_cast<HttpChannelChild*>(mHttpChannel)->OnProgress(aProgress, aProgressMax);
   return true;
@@ -84,6 +87,7 @@ HttpRetargetChannelChild::RecvOnProgressBackground(const uint64_t& aProgress,
 bool
 HttpRetargetChannelChild::RecvOnStatusBackground(const nsresult& aStatus)
 {
+  LOG(("HttpRetargetChannelChild::OnStatus [this=%p channelId=%d]\n",this,mChannelId));
   MOZ_ASSERT(NS_IsMainThread());
   static_cast<HttpChannelChild*>(mHttpChannel)->OnStatus(aStatus);
   return true;
@@ -92,9 +96,9 @@ HttpRetargetChannelChild::RecvOnStatusBackground(const nsresult& aStatus)
 bool
 HttpRetargetChannelChild::RecvOnStopRequestBackground(const nsresult& aStatusCode)
 {
+  LOG(("HttpRetargetChannelChild::OnStopRequest [this=%p channelId=%d]\n",this,mChannelId));
   MOZ_ASSERT(NS_IsMainThread());
   static_cast<HttpChannelChild*>(mHttpChannel)->OnStopRequest(aStatusCode);
-  mHttpChannel = nullptr;
   return true;
 }
 

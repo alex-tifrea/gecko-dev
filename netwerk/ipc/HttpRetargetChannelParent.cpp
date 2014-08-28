@@ -12,6 +12,7 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/PBackgroundParent.h"
 #include "mozilla/net/HttpChannelParent.h"
+#include "mozilla/unused.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
@@ -84,8 +85,7 @@ public:
     if (mHttpRetargetChannelParent->GetIPCClosed())
       return NS_ERROR_UNEXPECTED;
 
-    // TODO: unused << instead of void
-    (void) mHttpRetargetChannelParent->
+    unused << mHttpRetargetChannelParent->
       SendOnStartRequestBackground(mChannelStatus,
                                    mResponseHead,
                                    mUseResponseHead,
@@ -142,7 +142,7 @@ public:
     if (mHttpRetargetChannelParent->GetIPCClosed())
       return NS_ERROR_UNEXPECTED;
 
-    (void) mHttpRetargetChannelParent->SendOnStopRequestBackground(mStatusCode);
+    unused << mHttpRetargetChannelParent->SendOnStopRequestBackground(mStatusCode);
 
     return NS_OK;
   }

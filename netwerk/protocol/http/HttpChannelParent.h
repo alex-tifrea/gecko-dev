@@ -85,6 +85,11 @@ public:
   void SetChannelID(uint32_t channelID) { mChannelID = channelID; }
   uint32_t GetChannelId() { return mChannelID; }
 
+  PHttpRetargetChannelParent* GetHttpRetargetChannel()
+  {
+    return mHttpRetargetChannel;
+  }
+
   void SetHttpRetargetChannel(PHttpRetargetChannelParent* aHttpRetargetChannel)
   {
     mHttpRetargetChannel = aHttpRetargetChannel;

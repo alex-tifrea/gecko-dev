@@ -118,29 +118,31 @@ HttpChannelParent::Init(const HttpChannelCreationArgs& aArgs)
   case HttpChannelCreationArgs::THttpChannelConnectArgs:
   {
     const HttpChannelConnectArgs& cArgs = aArgs.get_HttpChannelConnectArgs();
-    // Delete the entries in the hashtables (`ContentParent::mHttpChannels` and
-    // `ContentParent::mHttpRetargetChannels`) corresponding to the old channel.
-    // Add entries for the new channel and update the
-    // `HttpRetargetChannelParent` actor.
     const uint32_t oldChannelId = cArgs.oldHttpChannelId();
     const uint32_t newChannelId = cArgs.newHttpChannelId();
+    mChannelID = newChannelId;
     LOG(("HttpChannelParent::Init REDIRECTING [oldChannelId=%d newChannelId=%d]\n", oldChannelId, newChannelId));
-    ContentParent* contentParent =
-      static_cast<ContentParent*>(this->Manager()->Manager());
-
-    if (contentParent)
-      mHttpRetargetChannel = contentParent->GetHttpRetargetChannel(oldChannelId);
-
-    if (mHttpRetargetChannel) {
-      static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannel)->
-        NotifyRedirect(newChannelId);
-    } else {
-    }
-
-    contentParent->RemoveHttpChannel(oldChannelId);
-    contentParent->RemoveHttpRetargetChannel(oldChannelId);
-
-    contentParent->AddHttpRetargetChannel(newChannelId, mHttpRetargetChannel);
+    //TODO: I think I can get rid of this
+//     // Delete the entries in the hashtables (`ContentParent::mHttpChannels` and
+//     // `ContentParent::mHttpRetargetChannels`) corresponding to the old channel.
+//     // Add entries for the new channel and update the
+//     // `HttpRetargetChannelParent` actor.
+//     ContentParent* contentParent =
+//       static_cast<ContentParent*>(this->Manager()->Manager());
+// 
+//     if (contentParent)
+//       mHttpRetargetChannel = contentParent->GetHttpRetargetChannel(oldChannelId);
+// 
+//     if (mHttpRetargetChannel) {
+//       static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannel)->
+//         NotifyRedirect(newChannelId);
+//     } else {
+//     }
+// 
+//     contentParent->RemoveHttpChannel(oldChannelId);
+//     contentParent->RemoveHttpRetargetChannel(oldChannelId);
+// 
+//     contentParent->AddHttpRetargetChannel(newChannelId, mHttpRetargetChannel);
 
     return ConnectChannel(cArgs.redirectChannelId());
   }
@@ -753,6 +755,8 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
     rv = threadRetargetableRequest->RetargetDeliveryTo(backgroundThread);
   }
 
+  backgroundThread = nullptr;
+
   if (NS_FAILED(rv)) {
     NS_WARNING("Failed to retarget data delivery to the background thread.");
   }
@@ -763,15 +767,15 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   // Send the message to the child via `HttpRetargetChannel`.
   if (!mHttpRetargetChannel ||
         !static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannel)->
-        ProcessOnStartRequestBackground(channelStatus,
-                                        responseHead ? *responseHead : nsHttpResponseHead(),
-                                        !!responseHead,
-                                        requestHead->Headers(),
-                                        isFromCache,
-                                        mCacheEntry ? true : false,
-                                        expirationTime, cachedCharset, secInfoSerialization,
-                                        mChannel->GetSelfAddr(), mChannel->GetPeerAddr(),
-                                        redirectCount))
+          ProcessOnStartRequestBackground(channelStatus,
+                                          responseHead ? *responseHead : nsHttpResponseHead(),
+                                          !!responseHead,
+                                          requestHead->Headers(),
+                                          isFromCache,
+                                          mCacheEntry ? true : false,
+                                          expirationTime, cachedCharset, secInfoSerialization,
+                                          mChannel->GetSelfAddr(), mChannel->GetPeerAddr(),
+                                          redirectCount))
     return NS_ERROR_UNEXPECTED;
 
   return NS_OK;
@@ -826,6 +830,15 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
   if (mIPCClosed || !SendOnStopRequest(aStatusCode, timing))
     return NS_ERROR_UNEXPECTED;
   mHttpRetargetChannel = nullptr;
+
+//   // TODO: do this in AsyncOpen right after you use the entry in the hashtable,
+//   // because afterwards it is no longer useful
+//   // Delete the correponding entry from
+//   // `ContentParent.mHttpRetargetChannels`
+//   ContentParent* contentParent =
+//     static_cast<ContentParent*>(this->Manager()->Manager());
+//   contentParent->RemoveHttpRetargetChannel(this->mChannelID);
+//   contentParent->RemoveHttpChannel(this->mChannelID);
 
   return NS_OK;
 }
@@ -902,8 +915,9 @@ HttpChannelParent::OnProgress(nsIRequest *aRequest,
     // If the `OnProgress` event is processed on the background thread in the
     // parent, then send the message to the child via `HttpRetargetChannel`.
     if (IsOnBackgroundThread() && (!mHttpRetargetChannel ||
-          !mHttpRetargetChannel->SendOnProgressBackground(aProgress,
-                                                          aProgressMax)))
+                                   !mHttpRetargetChannel->
+                                     SendOnProgressBackground(aProgress,
+                                                              aProgressMax)))
       return NS_ERROR_UNEXPECTED;
   }
 
@@ -933,7 +947,8 @@ HttpChannelParent::OnStatus(nsIRequest *aRequest,
   // If the `OnStatus` event is processed on the background thread in the
   // parent, then send the message to the child via `HttpRetargetChannel`.
   if (IsOnBackgroundThread() && (!mHttpRetargetChannel ||
-        !mHttpRetargetChannel->SendOnStatusBackground(aStatus)))
+                                 !mHttpRetargetChannel->
+                                   SendOnStatusBackground(aStatus)))
     return NS_ERROR_UNEXPECTED;
 
   return NS_OK;

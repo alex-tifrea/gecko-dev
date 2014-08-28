@@ -42,7 +42,8 @@ namespace net {
 // HttpChannelChild
 //-----------------------------------------------------------------------------
 
-HttpChannelChild::HttpChannelChild(uint32_t aChannelId)
+HttpChannelChild::HttpChannelChild(uint32_t aChannelId,
+                                   HttpRetargetChannelChild* aHttpRetargetChannel)
   : HttpAsyncAborter<HttpChannelChild>(MOZ_THIS_IN_INITIALIZER_LIST())
   , mIsFromCache(false)
   , mCacheEntryAvailable(false)
@@ -58,6 +59,7 @@ HttpChannelChild::HttpChannelChild(uint32_t aChannelId)
   LOG(("Creating HttpChannelChild @%x\n", this));
 
   mChannelId = aChannelId;
+  mHttpRetargetChannel = aHttpRetargetChannel;
   mChannelCreationTime = PR_Now();
   mChannelCreationTimestamp = TimeStamp::Now();
   mAsyncOpenTime = TimeStamp::Now();
@@ -571,6 +573,7 @@ HttpChannelChild::OnStopRequest(const nsresult& channelStatus)
       mLoadGroup->RemoveRequest(this, nullptr, mStatus);
   }
 
+  //TODO: I think I can get rid of the hashtable in the child
   ContentChild* contentChild=
     static_cast<ContentChild*>(this->Manager()->Manager());
   contentChild->RemoveHttpRetargetChannel(this->mChannelId);
@@ -858,7 +861,7 @@ HttpChannelChild::Redirect1Begin(const uint32_t& newChannelId,
     // ConnectParent in nsIChildChannel.idl so that it accepts 3 arguments (the
     // redirect id, the old Http channel id and the new Http channel id)
     static_cast<HttpChannelChild*>(mRedirectChannelChild.get())->mOldChannelId = mChannelId;
-    mRedirectChannelChild->ConnectParent(newChannelId);
+    static_cast<HttpChannelChild*>(mRedirectChannelChild.get())->ConnectParent(newChannelId);
     rv = gHttpHandler->AsyncOnChannelRedirect(this,
                                               newChannel,
                                               redirectFlags);
@@ -957,6 +960,13 @@ HttpChannelChild::Redirect3Complete()
                                                       mListenerContext);
   }
 
+  HttpChannelChild* tmp = static_cast<HttpChannelChild*>(mRedirectChannelChild.get());
+  tmp->SetHttpRetargetChannel(mHttpRetargetChannel);
+  // TODO: I should only pass mRedirectChannelChild here
+  static_cast<HttpRetargetChannelChild*>(mHttpRetargetChannel)->NotifyRedirect(tmp->mChannelId,
+                                                                               tmp);
+  mHttpRetargetChannel = nullptr;
+
   // Redirecting to new channel: shut this down and init new channel
   if (mLoadGroup)
     mLoadGroup->RemoveRequest(this, nullptr, NS_BINDING_ABORTED);
@@ -1034,16 +1044,17 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener *listener,
   if (mLoadGroup)
     mLoadGroup->AddRequest(this, nullptr);
 
-  // Get the `HttpRetargetChannelChild` object from the `mHttpRetargetChannels`
-  // hashtable in ContentChild (using `oldChannelId` to get it). Afterwards,
-  // call `NotifyRedirect` on the `HttpRetargetChannelChild` object, in order
-  // to update its `channelId` and update the hashtable accordingly
-  ContentChild* contentChild =
-    static_cast<ContentChild*>(this->Manager()->Manager());
-  HttpRetargetChannelChild* httpRetargetChannel =
-    static_cast<HttpRetargetChannelChild*>(contentChild->
-                                            GetHttpRetargetChannel(mOldChannelId));
-  httpRetargetChannel->NotifyRedirect(mChannelId, this);
+  //   TODO: I think I can get rid of this
+//   // Get the `HttpRetargetChannelChild` object from the `mHttpRetargetChannels`
+//   // hashtable in ContentChild (using `oldChannelId` to get it). Afterwards,
+//   // call `NotifyRedirect` on the `HttpRetargetChannelChild` object, in order
+//   // to update its `channelId` and update the hashtable accordingly
+//   ContentChild* contentChild =
+//     static_cast<ContentChild*>(this->Manager()->Manager());
+//   HttpRetargetChannelChild* httpRetargetChannel =
+//     static_cast<HttpRetargetChannelChild*>(contentChild->
+//                                             GetHttpRetargetChannel(mOldChannelId));
+//   httpRetargetChannel->NotifyRedirect(mChannelId, this);
 
 
   // We already have an open IPDL connection to the parent. If on-modify-request
