@@ -495,7 +495,7 @@ class nsHtml5StreamParser : public nsICharsetDetectionObserver {
      * The thread this stream parser runs on.
      */
     nsCOMPtr<nsIThread>           mThread;
-
+    
     nsCOMPtr<nsIRunnable>         mExecutorFlusher;
     
     nsCOMPtr<nsIRunnable>         mLoadFlusher;

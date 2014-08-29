@@ -30,8 +30,8 @@
 #include "nsIDivertableChannel.h"
 #include "mozilla/net/DNS.h"
 #include "mozilla/ipc/PBackgroundChild.h"
-#include "mozilla/net/PHttpRetargetChannelChild.h"
-#include "mozilla/net/HttpRetargetChannelChild.h"
+#include "mozilla/net/PHttpBackgroundChannelChild.h"
+#include "mozilla/net/HttpBackgroundChannelChild.h"
 
 using namespace mozilla::ipc;
 
@@ -100,11 +100,11 @@ public:
 
   void FlushedForDiversion();
 
-  HttpRetargetChannelChild* GetHttpRetargetChannel() { return mHttpRetargetChannel; }
+  HttpBackgroundChannelChild* GetHttpBackgroundChannel() { return mHttpBackgroundChannel; }
 
-  void SetHttpRetargetChannel(HttpRetargetChannelChild* aHttpRetargetChannel)
+  void SetHttpBackgroundChannel(HttpBackgroundChannelChild* aHttpBackgroundChannel)
   {
-    mHttpRetargetChannel = aHttpRetargetChannel;
+    mHttpBackgroundChannel = aHttpBackgroundChannel;
   }
 
   uint32_t GetChannelId() { return mChannelId; }
@@ -175,13 +175,12 @@ private:
   // diverting callbacks to parent.
   bool mSuspendSent;
 
-  // TODO: I think you can get rid of this now
-  // `mOldChannelId` is used when redirecting
-  uint32_t mOldChannelId;
+  // The corresponding `HttpBackgroundChannelChild`. It is created during
+  // `HttpChannelChild::AsyncOpen` and is transfered from the old channel over
+  // to the new one when redirecting (in `HttpChannelChild::Redirect3Complete`).
+  HttpBackgroundChannelChild* mHttpBackgroundChannel;
 
   uint32_t mChannelId;
-
-  HttpRetargetChannelChild* mHttpRetargetChannel;
 
   // true after successful AsyncOpen until OnStopRequest completes.
   bool RemoteChannelExists() { return mIPCOpen && !mKeptAlive; }
@@ -217,8 +216,6 @@ private:
                       const nsHttpResponseHead& responseHead);
   void Redirect3Complete();
 
-  void CreateHttpRetargetChannel();
-
   void DeleteSelf();
 
   friend class AssociateApplicationCacheEvent;
@@ -233,7 +230,7 @@ private:
   friend class DeleteSelfEvent;
   friend class HttpAsyncAborter<HttpChannelChild>;
   friend class OnTransportAndDataRunnable;
-  friend class HttpRetargetChannelChild;
+  friend class HttpBackgroundChannelChild;
 };
 
 //-----------------------------------------------------------------------------

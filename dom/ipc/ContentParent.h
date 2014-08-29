@@ -24,7 +24,7 @@
 #include "nsIThreadInternal.h"
 #include "nsIDOMGeoPositionCallback.h"
 #include "PermissionMessageUtils.h"
-#include "mozilla/net/PHttpRetargetChannelParent.h"
+#include "mozilla/net/PHttpBackgroundChannelParent.h"
 #include "mozilla/net/PHttpChannelParent.h"
 
 #define CHILD_PROCESS_SHUTDOWN_MESSAGE NS_LITERAL_STRING("child-process-shutdown")
@@ -285,18 +285,18 @@ public:
         PBlobParent* aActor,
         const BlobConstructorParams& aParams) MOZ_OVERRIDE;
 
-    virtual void AddHttpRetargetChannel(uint32_t aKey,
-                                        mozilla::net::PHttpRetargetChannelParent* aData);
+    virtual void AddHttpBackgroundChannel(uint32_t aKey,
+                                        mozilla::net::PHttpBackgroundChannelParent* aData);
 
-    virtual mozilla::net::PHttpRetargetChannelParent* GetHttpRetargetChannel(uint32_t aKey);
-
-    virtual void RemoveHttpRetargetChannel(uint32_t aKey);
+    // Returns the `PHttpBackgroundChannelParent` reference stored in the
+    // hashtable and implicitly deletes it from the hashtable afterwards
+    virtual mozilla::net::PHttpBackgroundChannelParent* GetHttpBackgroundChannel(uint32_t aKey);
 
     virtual void AddHttpChannel(uint32_t aKey, mozilla::net::PHttpChannelParent* aData);
 
+    // Returns the `PHttpChannelParent` reference stored in the
+    // hashtable and implicitly deletes it from the hashtable afterwards
     virtual mozilla::net::PHttpChannelParent* GetHttpChannel(uint32_t aKey);
-
-    virtual void RemoveHttpChannel(uint32_t aKey);
 
     void SetMustCallAsyncOpen(uint32_t aChannelId) {
       mMustCallAsyncOpen.PutEntry(aChannelId);
@@ -754,8 +754,6 @@ private:
 
     // If | mMustCallAsyncOpen | is true, then AddToHashtableRunnable::Run()
     // needs to call AsyncOpen for a given http channel
-    // TODO: this may not be the best solution, but I will leave it like this
-    // for now
     nsTHashtable<nsUint32HashKey> mMustCallAsyncOpen;
 
     friend class CrashReporterParent;
@@ -766,7 +764,7 @@ private:
     nsDataHashtable<nsUint64HashKey, nsRefPtr<ParentIdleListener> > mIdleListeners;
 
     nsDataHashtable<nsUint32HashKey,
-                    mozilla::net::PHttpRetargetChannelParent*> mHttpRetargetChannels;
+                    mozilla::net::PHttpBackgroundChannelParent*> mHttpBackgroundChannels;
     nsDataHashtable<nsUint32HashKey, mozilla::net::PHttpChannelParent*> mHttpChannels;
 
 #ifdef MOZ_X11

@@ -12,8 +12,8 @@ XPIDL_MODULE = 'necko_ipc'
 
 EXPORTS.mozilla.net += [
     'ChannelEventQueue.h',
-    'HttpRetargetChannelChild.h',
-    'HttpRetargetChannelParent.h',
+    'HttpBackgroundChannelChild.h',
+    'HttpBackgroundChannelParent.h',
     'NeckoChild.h',
     'NeckoCommon.h',
     'NeckoMessageUtils.h',
@@ -23,8 +23,8 @@ EXPORTS.mozilla.net += [
 ]
 
 SOURCES += [
-    'HttpRetargetChannelChild.cpp',
-    'HttpRetargetChannelParent.cpp',
+    'HttpBackgroundChannelChild.cpp',
+    'HttpBackgroundChannelParent.cpp',
 ]
 
 UNIFIED_SOURCES += [
@@ -39,7 +39,7 @@ UNIFIED_SOURCES += [
 IPDL_SOURCES = [
     'NeckoChannelParams.ipdlh',
     'PChannelDiverter.ipdl',
-    'PHttpRetargetChannel.ipdl',
+    'PHttpBackgroundChannel.ipdl',
     'PNecko.ipdl',
     'PRemoteOpenFile.ipdl',
     'PRtspChannel.ipdl',

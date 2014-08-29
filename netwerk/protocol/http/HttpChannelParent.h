@@ -19,11 +19,13 @@
 #include "nsIProgressEventSink.h"
 #include "nsHttpChannel.h"
 #include "nsIAuthPromptProvider.h"
-#include "mozilla/net/PHttpRetargetChannelParent.h"
+#include "mozilla/net/PHttpBackgroundChannelParent.h"
 #include "nsIThreadRetargetableStreamListener.h"
 #include "nsPIThreadRetargetableProgressSink.h"
 
-typedef mozilla::net::PHttpRetargetChannelParent PHttpRetargetChannelParent;
+#include <ctime>
+
+typedef mozilla::net::PHttpBackgroundChannelParent PHttpBackgroundChannelParent;
 
 class nsICacheEntry;
 class nsIAssociatedContentSecurity;
@@ -85,17 +87,19 @@ public:
   void SetChannelID(uint32_t channelID) { mChannelID = channelID; }
   uint32_t GetChannelId() { return mChannelID; }
 
-  PHttpRetargetChannelParent* GetHttpRetargetChannel()
+  PHttpBackgroundChannelParent* GetHttpBackgroundChannel()
   {
-    return mHttpRetargetChannel;
+    return mHttpBackgroundChannel;
   }
 
-  void SetHttpRetargetChannel(PHttpRetargetChannelParent* aHttpRetargetChannel)
+  void SetHttpBackgroundChannel(PHttpBackgroundChannelParent* aHttpBackgroundChannel)
   {
-    mHttpRetargetChannel = aHttpRetargetChannel;
+    mHttpBackgroundChannel = aHttpBackgroundChannel;
   }
 
   bool FinishAsyncOpen();
+
+  clock_t begin;
 
 protected:
   // used to connect redirected-to channel in parent with just created
@@ -203,9 +207,9 @@ private:
 
   uint64_t mNestedFrameId;
 
-  // A reference to the coresponding PHttpRetargetChannel actor. The reference
-  // is looked up in the mHttpRetargetChannels hashtable.
-  PHttpRetargetChannelParent* mHttpRetargetChannel;
+  // A reference to the coresponding PHttpBackgroundChannel actor. The reference
+  // is looked up in the mHttpBackgroundChannels hashtable.
+  PHttpBackgroundChannelParent* mHttpBackgroundChannel;
 
   uint32_t mChannelID;
 };

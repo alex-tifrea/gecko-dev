@@ -11,8 +11,8 @@
 #include "mozilla/dom/ipc/BlobParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/PBackgroundTestParent.h"
-#include "mozilla/net/PHttpRetargetChannelParent.h"
-#include "mozilla/net/HttpRetargetChannelParent.h"
+#include "mozilla/net/PHttpBackgroundChannelParent.h"
+#include "mozilla/net/HttpBackgroundChannelParent.h"
 #include "nsThreadUtils.h"
 #include "nsTraceRefcnt.h"
 #include "nsXULAppAPI.h"
@@ -121,38 +121,38 @@ BackgroundParentImpl::DeallocPBackgroundTestParent(
   return true;
 }
 
-PHttpRetargetChannelParent*
-BackgroundParentImpl::AllocPHttpRetargetChannelParent(const uint32_t& channelId)
+PHttpBackgroundChannelParent*
+BackgroundParentImpl::AllocPHttpBackgroundChannelParent(const uint32_t& channelId)
 {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
 
-  return new HttpRetargetChannelParent();
+  return new HttpBackgroundChannelParent();
 }
 
 bool
-BackgroundParentImpl::RecvPHttpRetargetChannelConstructor(
-                                                  PHttpRetargetChannelParent* aActor,
+BackgroundParentImpl::RecvPHttpBackgroundChannelConstructor(
+                                                  PHttpBackgroundChannelParent* aActor,
                                                   const uint32_t& aChannelId)
 {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
 
-  HttpRetargetChannelParent* p = static_cast<HttpRetargetChannelParent*>(aActor);
+  HttpBackgroundChannelParent* p = static_cast<HttpBackgroundChannelParent*>(aActor);
 
   return p->Init(aChannelId);
 }
 
 
 bool
-BackgroundParentImpl::DeallocPHttpRetargetChannelParent(PHttpRetargetChannelParent* aActor)
+BackgroundParentImpl::DeallocPHttpBackgroundChannelParent(PHttpBackgroundChannelParent* aActor)
 {
   AssertIsInMainProcess();
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
 
-  delete static_cast<HttpRetargetChannelParent*>(aActor);
+  delete static_cast<HttpBackgroundChannelParent*>(aActor);
   return true;
 }
 

@@ -12,8 +12,8 @@
 #include "mozilla/unused.h"
 #include "nsIRedirectChannelRegistrar.h"
 #include "nsIHttpEventSink.h"
-#include "mozilla/net/PHttpRetargetChannelParent.h"
-#include "mozilla/net/HttpRetargetChannelParent.h"
+#include "mozilla/net/PHttpBackgroundChannelParent.h"
+#include "mozilla/net/HttpBackgroundChannelParent.h"
 
 using mozilla::unused;
 
@@ -215,17 +215,18 @@ HttpChannelParentListener::OnRedirectResult(bool succeeded)
   }
 
   if (succeeded) {
-    // TODO: create the link to the HttpRetargetChannel
-    PHttpRetargetChannelParent* httpRetargetChannel =
+    // Create the link between the newly created `HttpChannelParent` and the
+    // `HttpBackgroundChannelParent` that belonged to the old `HttpChannelParent`.
+    PHttpBackgroundChannelParent* httpBackgroundChannel =
       static_cast<HttpChannelParent*>(mNextListener.get())->
-        GetHttpRetargetChannel();
-    HttpChannelParent* tmp = static_cast<HttpChannelParent*>(redirectChannel.get());
-    tmp->SetHttpRetargetChannel(httpRetargetChannel);
-    static_cast<HttpRetargetChannelParent*>(httpRetargetChannel)->
-      NotifyRedirect(tmp->GetChannelId());
-    static_cast<HttpChannelParent*>(mNextListener.get())->
-      SetHttpRetargetChannel(nullptr);
+        GetHttpBackgroundChannel();
+    HttpChannelParent* httpChannelParent = static_cast<HttpChannelParent*>(redirectChannel.get());
 
+    httpChannelParent->SetHttpBackgroundChannel(httpBackgroundChannel);
+    static_cast<HttpBackgroundChannelParent*>(httpBackgroundChannel)->
+      NotifyRedirect(httpChannelParent->GetChannelId());
+    static_cast<HttpChannelParent*>(mNextListener.get())->
+      SetHttpBackgroundChannel(nullptr);
 
     // Switch to redirect channel and delete the old one.
     nsCOMPtr<nsIParentChannel> parent;

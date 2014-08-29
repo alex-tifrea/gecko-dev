@@ -13,7 +13,7 @@ using struct mozilla::void_t
   from "ipc/IPCMessageUtils.h";
 
 include protocol PBackgroundTest;
-include protocol PHttpRetargetChannel;
+include protocol PHttpBackgroundChannel;
 
 namespace mozilla {
 namespace dom {
@@ -36,7 +36,7 @@ sync protocol PBackground
   manages PBackgroundTest;
   manages PBlob;
   manages PFileDescriptorSet;
-  manages PHttpRetargetChannel;
+  manages PHttpBackgroundChannel;
 
 parent:
   // Only called at startup during mochitests to check the basic infrastructure.
@@ -49,7 +49,7 @@ both:
 
   PFileDescriptorSet(FileDescriptor fd);
 
-  PHttpRetargetChannel(uint32_t channelId);
+  PHttpBackgroundChannel(uint32_t channelId);
 };
 
 } // namespace ipc

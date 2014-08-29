@@ -30,7 +30,7 @@
 #include "SerializedLoadContext.h"
 #include "nsPerformance.h"
 #include "mozilla/ipc/BackgroundChild.h"
-#include "mozilla/net/HttpRetargetChannelChild.h"
+#include "mozilla/net/HttpBackgroundChannelChild.h"
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
@@ -53,8 +53,7 @@ HttpChannelChild::HttpChannelChild(uint32_t aChannelId)
   , mDivertingToParent(false)
   , mFlushedForDiversion(false)
   , mSuspendSent(false)
-  , mOldChannelId(0)
-  , mHttpRetargetChannel(nullptr)
+  , mHttpBackgroundChannel(nullptr)
   , mChannelId(aChannelId)
 {
   LOG(("Creating HttpChannelChild @%x\n", this));
@@ -572,11 +571,6 @@ HttpChannelChild::OnStopRequest(const nsresult& channelStatus)
       mLoadGroup->RemoveRequest(this, nullptr, mStatus);
   }
 
-  //TODO: I think I can get rid of the hashtable in the child
-  ContentChild* contentChild=
-    static_cast<ContentChild*>(this->Manager()->Manager());
-  contentChild->RemoveHttpRetargetChannel(this->mChannelId);
-
   if (mLoadFlags & LOAD_DOCUMENT_URI) {
     // Keep IPDL channel open, but only for updating security info.
     mKeptAlive = true;
@@ -855,11 +849,6 @@ HttpChannelChild::Redirect1Begin(const uint32_t& newChannelId,
 
   mRedirectChannelChild = do_QueryInterface(newChannel);
   if (mRedirectChannelChild) {
-    // XXX: Should we use this additional member to make the oldChannelId visible
-    // in `ConnectParent` or should we instead change the signature of
-    // ConnectParent in nsIChildChannel.idl so that it accepts 3 arguments (the
-    // redirect id, the old Http channel id and the new Http channel id)
-    static_cast<HttpChannelChild*>(mRedirectChannelChild.get())->mOldChannelId = mChannelId;
     static_cast<HttpChannelChild*>(mRedirectChannelChild.get())->ConnectParent(newChannelId);
     rv = gHttpHandler->AsyncOnChannelRedirect(this,
                                               newChannel,
@@ -959,12 +948,12 @@ HttpChannelChild::Redirect3Complete()
                                                       mListenerContext);
   }
 
-  HttpChannelChild* tmp = static_cast<HttpChannelChild*>(mRedirectChannelChild.get());
-  tmp->SetHttpRetargetChannel(mHttpRetargetChannel);
-  // TODO: I should only pass mRedirectChannelChild here
-  static_cast<HttpRetargetChannelChild*>(mHttpRetargetChannel)->NotifyRedirect(tmp->mChannelId,
-                                                                               tmp);
-  mHttpRetargetChannel = nullptr;
+  HttpChannelChild* httpChannelChild =
+    static_cast<HttpChannelChild*>(mRedirectChannelChild.get());
+  httpChannelChild->SetHttpBackgroundChannel(mHttpBackgroundChannel);
+  static_cast<HttpBackgroundChannelChild*>(mHttpBackgroundChannel)->
+    NotifyRedirect(httpChannelChild);
+  mHttpBackgroundChannel = nullptr;
 
   // Redirecting to new channel: shut this down and init new channel
   if (mLoadGroup)
@@ -977,16 +966,6 @@ HttpChannelChild::Redirect3Complete()
   mRedirectChannelChild = nullptr;
 }
 
-void
-HttpChannelChild::CreateHttpRetargetChannel()
-{
-  mHttpRetargetChannel = new HttpRetargetChannelChild();
-  // IPDL now owns this object (more specifically, the actor in the parent
-  // process is now created and the connection between the two actors is
-  // now established)
-  mHttpRetargetChannel->Init(this);
-}
-
 //-----------------------------------------------------------------------------
 // HttpChannelChild::nsIChildChannel
 //-----------------------------------------------------------------------------
@@ -994,7 +973,8 @@ HttpChannelChild::CreateHttpRetargetChannel()
 NS_IMETHODIMP
 HttpChannelChild::ConnectParent(uint32_t id)
 {
-  LOG(("HttpChannelChild::ConnectParent [this=%p oldChannelId=%d newChannelId=%d]\n", this,mOldChannelId,mChannelId));
+  LOG(("HttpChannelChild::ConnectParent [this=%p newChannelId=%d]\n",
+        this,mChannelId));
 
   mozilla::dom::TabChild* tabChild = nullptr;
   nsCOMPtr<nsITabChild> iTabChild;
@@ -1010,7 +990,7 @@ HttpChannelChild::ConnectParent(uint32_t id)
   // until OnStopRequest, or we do a redirect, or we hit an IPDL error.
   AddIPDLReference();
 
-  HttpChannelConnectArgs connectArgs(id, mOldChannelId, mChannelId);
+  HttpChannelConnectArgs connectArgs(id, mChannelId);
   PBrowserOrId browser;
   if (!tabChild ||
       static_cast<ContentChild*>(gNeckoChild->Manager()) == tabChild->Manager()) {
@@ -1052,19 +1032,6 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener *listener,
   // add ourselves to the load group.
   if (mLoadGroup)
     mLoadGroup->AddRequest(this, nullptr);
-
-  //   TODO: I think I can get rid of this
-//   // Get the `HttpRetargetChannelChild` object from the `mHttpRetargetChannels`
-//   // hashtable in ContentChild (using `oldChannelId` to get it). Afterwards,
-//   // call `NotifyRedirect` on the `HttpRetargetChannelChild` object, in order
-//   // to update its `channelId` and update the hashtable accordingly
-//   ContentChild* contentChild =
-//     static_cast<ContentChild*>(this->Manager()->Manager());
-//   HttpRetargetChannelChild* httpRetargetChannel =
-//     static_cast<HttpRetargetChannelChild*>(contentChild->
-//                                             GetHttpRetargetChannel(mOldChannelId));
-//   httpRetargetChannel->NotifyRedirect(mChannelId, this);
-
 
   // We already have an open IPDL connection to the parent. If on-modify-request
   // listeners or load group observers canceled us, let the parent handle it
@@ -1300,8 +1267,12 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
     }
   }
 
-  // Create the `HttpRetargetChannelChild` object.
-  CreateHttpRetargetChannel();
+  // Create the `HttpBackgroundChannelChild` object.
+  mHttpBackgroundChannel = new HttpBackgroundChannelChild();
+  // IPDL now owns this object (more specifically, the actor in the parent
+  // process is now created and the connection between the two actors is
+  // now established)
+  mHttpBackgroundChannel->Init(this);
 
   //
   // Send request to the chrome process...

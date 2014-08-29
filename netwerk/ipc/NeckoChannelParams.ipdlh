@@ -65,7 +65,6 @@ struct HttpChannelOpenArgs
 struct HttpChannelConnectArgs
 {
   uint32_t redirectChannelId;
-  uint32_t oldHttpChannelId;
   uint32_t newHttpChannelId;
 };
 

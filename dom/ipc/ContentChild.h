@@ -14,8 +14,6 @@
 #include "nsHashKeys.h"
 #include "nsIObserver.h"
 #include "nsTHashtable.h"
-#include "nsDataHashtable.h"
-#include "mozilla/net/PHttpRetargetChannelChild.h"
 
 #include "nsWeakPtr.h"
 
@@ -339,13 +337,6 @@ public:
     virtual bool RecvUnregisterSheet(const URIParams& aURI, const uint32_t& aType) MOZ_OVERRIDE;
 
     virtual bool RecvNotifyPhoneStateChange(const nsString& state) MOZ_OVERRIDE;
-
-    virtual void AddHttpRetargetChannel(uint32_t aKey,
-                                        mozilla::net::PHttpRetargetChannelChild* aData);
-
-    virtual mozilla::net::PHttpRetargetChannelChild* GetHttpRetargetChannel(uint32_t aKey);
-
-    virtual void RemoveHttpRetargetChannel(uint32_t aKey);
 
     void AddIdleObserver(nsIObserver* aObserver, uint32_t aIdleTimeInS);
     void RemoveIdleObserver(nsIObserver* aObserver, uint32_t aIdleTimeInS);

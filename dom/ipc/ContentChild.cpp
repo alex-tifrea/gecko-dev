@@ -40,7 +40,6 @@
 #include "mozilla/layers/PCompositorChild.h"
 #include "mozilla/layers/SharedBufferManagerChild.h"
 #include "mozilla/net/NeckoChild.h"
-#include "mozilla/net/PHttpRetargetChannelChild.h"
 
 #if defined(MOZ_CONTENT_SANDBOX)
 #if defined(XP_WIN)
@@ -181,8 +180,6 @@ using namespace mozilla::jsipc;
 using namespace mozilla::system;
 #endif
 using namespace mozilla::widget;
-
-typedef mozilla::net::PHttpRetargetChannelParent PHttpRetargetChannelParent;
 
 #ifdef MOZ_NUWA_PROCESS
 static bool sNuwaForking = false;
@@ -394,7 +391,7 @@ ConsoleListener::Observe(nsIConsoleMessage* aMessage)
 {
     if (!mChild)
         return NS_OK;
-
+    
     nsCOMPtr<nsIScriptError> scriptError = do_QueryInterface(aMessage);
     if (scriptError) {
         nsString msg, sourceName, sourceLine;
@@ -1623,8 +1620,6 @@ ContentChild::ActorDestroy(ActorDestroyReason why)
 
     mIdleObservers.Clear();
 
-    mHttpRetargetChannels.Clear();
-
     nsCOMPtr<nsIConsoleService> svc(do_GetService(NS_CONSOLESERVICE_CONTRACTID));
     if (svc) {
         svc->UnregisterListener(mConsoleListener);
@@ -2030,25 +2025,6 @@ ContentChild::RecvNotifyPhoneStateChange(const nsString& aState)
       os->NotifyObservers(nullptr, "phone-state-changed", aState.get());
     }
     return true;
-}
-
-void
-ContentChild::AddHttpRetargetChannel(uint32_t aKey,
-                                      PHttpRetargetChannelChild* aData)
-{
-  mHttpRetargetChannels.Put(aKey, aData);
-}
-
-PHttpRetargetChannelChild*
-ContentChild::GetHttpRetargetChannel(uint32_t aKey)
-{
-  return mHttpRetargetChannels.Get(aKey);
-}
-
-void
-ContentChild::RemoveHttpRetargetChannel(uint32_t aKey)
-{
-  mHttpRetargetChannels.Remove(aKey);
 }
 
 void

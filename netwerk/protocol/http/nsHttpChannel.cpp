@@ -65,6 +65,7 @@
 #include "CacheObserver.h"
 #include "mozilla/Telemetry.h"
 #include "nsPIThreadRetargetableProgressSink.h"
+#include "BackgroundParent.h"
 
 namespace mozilla { namespace net {
 
@@ -226,7 +227,6 @@ nsHttpChannel::nsHttpChannel()
     , mConcurentCacheAccess(0)
     , mIsPartialRequest(0)
     , mHasAutoRedirectVetoNotifier(0)
-    , mRetargetableProgressSink(nullptr)
     , mDidReval(false)
 {
     LOG(("Creating nsHttpChannel [this=%p]\n", this));
@@ -966,12 +966,6 @@ nsHttpChannel::CallOnStartRequest()
             CloseOfflineCacheEntry();
         }
     }
-
-    // cache the progress sink so we don't have to query for it each time.
-    if (!mProgressSink)
-        GetCallback(mProgressSink);
-
-    mRetargetableProgressSink = do_QueryInterface(mProgressSink);
 
     return NS_OK;
 }
@@ -5039,6 +5033,13 @@ nsHttpChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
         PopRedirectAsyncFunc(&nsHttpChannel::ContinueOnStartRequest1);
     }
 
+    // cache the progress sink so we don't have to query for it each time.
+    if (!mProgressSink)
+        GetCallback(mProgressSink);
+
+    if (!mRetargetableProgressSink)
+        GetCallback(mRetargetableProgressSink);
+
     return ContinueOnStartRequest2(NS_OK);
 }
 
@@ -5494,6 +5495,13 @@ NS_IMETHODIMP
 nsHttpChannel::OnTransportStatus(nsITransport *trans, nsresult status,
                                  uint64_t progress, uint64_t progressMax)
 {
+    if (!mozilla::ipc::IsOnBackgroundThread()) {
+     //XXX: I am not sure I understand what needs to be done here. From
+     //sworkman's review I understand that OnTransportStatus may sometimes be
+     //called by somewhere other than OnDataAvailable. What should be done in
+     //this case?   
+    }
+
     if (status == NS_NET_STATUS_CONNECTED_TO ||
         status == NS_NET_STATUS_WAITING_FOR) {
         nsCOMPtr<nsISocketTransport> socketTransport =

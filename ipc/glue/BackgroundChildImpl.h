@@ -7,7 +7,7 @@
 
 #include "mozilla/Attributes.h"
 #include "mozilla/ipc/PBackgroundChild.h"
-#include "mozilla/net/PHttpRetargetChannelChild.h"
+#include "mozilla/net/PHttpBackgroundChannelChild.h"
 
 template <class> class nsAutoPtr;
 
@@ -73,11 +73,11 @@ protected:
 
   virtual PHttpRetargetChannelChild*
 
-  virtual mozilla::net::PHttpRetargetChannelChild*
-  AllocPHttpRetargetChannelChild(const uint32_t& aChannelId) MOZ_OVERRIDE;
+  virtual mozilla::net::PHttpBackgroundChannelChild*
+  AllocPHttpBackgroundChannelChild(const uint32_t& aChannelId) MOZ_OVERRIDE;
 
   virtual bool
-  DeallocPHttpRetargetChannelChild(mozilla::net::PHttpRetargetChannelChild* aActor) MOZ_OVERRIDE;
+  DeallocPHttpBackgroundChannelChild(mozilla::net::PHttpBackgroundChannelChild* aActor) MOZ_OVERRIDE;
 };
 
 class BackgroundChildImpl::ThreadLocal MOZ_FINAL

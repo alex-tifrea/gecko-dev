@@ -9,8 +9,8 @@
 #include "mozilla/dom/indexedDB/PBackgroundIDBFactoryChild.h"
 #include "mozilla/dom/ipc/BlobChild.h"
 #include "mozilla/ipc/PBackgroundTestChild.h"
-#include "mozilla/net/PHttpRetargetChannelChild.h"
-#include "mozilla/net/HttpRetargetChannelChild.h"
+#include "mozilla/net/PHttpBackgroundChannelChild.h"
+#include "mozilla/net/HttpBackgroundChannelChild.h"
 #include "nsTraceRefcnt.h"
 #include "mozilla/Assertions.h"
 #include "nsThreadUtils.h"
@@ -28,11 +28,13 @@ IsMainProcess()
   return isMainProcess;
 }
 
+#ifdef DEBUG
 bool
 IsChildProcess()
 {
   return !IsMainProcess();
 }
+#endif
 
 void
 AssertIsInChildProcess()
@@ -128,21 +130,21 @@ BackgroundChildImpl::DeallocPBackgroundTestChild(PBackgroundTestChild* aActor)
   return true;
 }
 
-PHttpRetargetChannelChild*
-BackgroundChildImpl::AllocPHttpRetargetChannelChild(const uint32_t& aChannelId)
+PHttpBackgroundChannelChild*
+BackgroundChildImpl::AllocPHttpBackgroundChannelChild(const uint32_t& aChannelId)
 {
   AssertIsInChildProcess();
 
-  return new HttpRetargetChannelChild();
+  return new HttpBackgroundChannelChild();
 }
 
 bool
-BackgroundChildImpl::DeallocPHttpRetargetChannelChild(PHttpRetargetChannelChild* aActor)
+BackgroundChildImpl::DeallocPHttpBackgroundChannelChild(PHttpBackgroundChannelChild* aActor)
 {
   AssertIsInChildProcess();
   MOZ_ASSERT(aActor);
 
-  delete static_cast<HttpRetargetChannelChild*>(aActor);
+  delete static_cast<HttpBackgroundChannelChild*>(aActor);
   return true;
 }
 

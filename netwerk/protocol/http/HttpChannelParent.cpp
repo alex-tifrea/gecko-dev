@@ -33,10 +33,12 @@
 #include "nsICachingChannel.h"
 
 #include "mozilla/dom/ContentParent.h"
-#include "mozilla/net/PHttpRetargetChannelParent.h"
-#include "mozilla/net/HttpRetargetChannelParent.h"
+#include "mozilla/net/PHttpBackgroundChannelParent.h"
+#include "mozilla/net/HttpBackgroundChannelParent.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
+
+#include <ctime>
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
@@ -61,7 +63,7 @@ HttpChannelParent::HttpChannelParent(const PBrowserOrId& iframeEmbedding,
   , mDivertedOnStartRequest(false)
   , mSuspendedForDiversion(false)
   , mNestedFrameId(0)
-  , mHttpRetargetChannel(nullptr)
+  , mHttpBackgroundChannel(nullptr)
 {
   LOG(("Creating HttpChannelParent [this=%p]\n", this));
   // Ensure gHttpHandler is initialized: we need the atom table up and running.
@@ -118,31 +120,9 @@ HttpChannelParent::Init(const HttpChannelCreationArgs& aArgs)
   case HttpChannelCreationArgs::THttpChannelConnectArgs:
   {
     const HttpChannelConnectArgs& cArgs = aArgs.get_HttpChannelConnectArgs();
-    const uint32_t oldChannelId = cArgs.oldHttpChannelId();
     const uint32_t newChannelId = cArgs.newHttpChannelId();
     mChannelID = newChannelId;
-    LOG(("HttpChannelParent::Init REDIRECTING [oldChannelId=%d newChannelId=%d]\n", oldChannelId, newChannelId));
-    //TODO: I think I can get rid of this
-//     // Delete the entries in the hashtables (`ContentParent::mHttpChannels` and
-//     // `ContentParent::mHttpRetargetChannels`) corresponding to the old channel.
-//     // Add entries for the new channel and update the
-//     // `HttpRetargetChannelParent` actor.
-//     ContentParent* contentParent =
-//       static_cast<ContentParent*>(this->Manager()->Manager());
-// 
-//     if (contentParent)
-//       mHttpRetargetChannel = contentParent->GetHttpRetargetChannel(oldChannelId);
-// 
-//     if (mHttpRetargetChannel) {
-//       static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannel)->
-//         NotifyRedirect(newChannelId);
-//     } else {
-//     }
-// 
-//     contentParent->RemoveHttpChannel(oldChannelId);
-//     contentParent->RemoveHttpRetargetChannel(oldChannelId);
-// 
-//     contentParent->AddHttpRetargetChannel(newChannelId, mHttpRetargetChannel);
+    LOG(("HttpChannelParent::Init REDIRECTING [newChannelId=%d]\n", newChannelId));
 
     return ConnectChannel(cArgs.redirectChannelId());
   }
@@ -389,20 +369,18 @@ HttpChannelParent::StartAsyncOpen( const URIParams&           aURI,
 
   this->SetChannelID(aChannelID);
 
-  // Find the reference to the HttpRetargetChannelParent in the
-  // mHttpRetargetChannels hashtable, that resides in ContentParent
+  // Find the reference to the HttpBackgroundChannelParent in the
+  // mHttpBackgroundChannels hashtable, that resides in ContentParent
   ContentParent* contentParent =
     static_cast<ContentParent*>(this->Manager()->Manager());
-  mHttpRetargetChannel = contentParent->GetHttpRetargetChannel(this->mChannelID);
-  // | mHttpRetargetChannel | is nullptr if there is no entry in the hashtable
-  // corresponding to the given key.
+  mHttpBackgroundChannel = contentParent->GetHttpBackgroundChannel(this->mChannelID);
 
-  if (mHttpRetargetChannel) {
+  if (mHttpBackgroundChannel) {
     FinishAsyncOpen();
   } else {
-    // If the HttpRetargetChannelParent actor was not instantiated yet, we add
+    // If the HttpBackgroundChannelParent actor was not instantiated yet, we add
     // the HttpChannelParent to a new hashtable in order for it to be accessible
-    // from the HttpRetargetChannelParent actor which will try to call
+    // from the HttpBackgroundChannelParent actor which will try to call
     // FinishAsyncOpen on it.
     contentParent->AddHttpChannel(this->GetChannelId(), this);
     contentParent->SetMustCallAsyncOpen(this->GetChannelId());
@@ -688,6 +666,7 @@ NS_IMETHODIMP
 HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
 {
   LOG(("HttpChannelParent::OnStartRequest [this=%p]\n", this));
+  begin = clock();
 
   MOZ_RELEASE_ASSERT(!mDivertingFromChild,
     "Cannot call OnStartRequest if diverting is set!");
@@ -749,8 +728,8 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   nsresult rv;
   nsCOMPtr<nsIThreadRetargetableRequest> threadRetargetableRequest =
     do_QueryInterface(aRequest, &rv);
-  nsCOMPtr<nsIThread> backgroundThread = static_cast<HttpRetargetChannelParent*>(
-      mHttpRetargetChannel)->GetBackgroundThread();
+  nsCOMPtr<nsIThread> backgroundThread = static_cast<HttpBackgroundChannelParent*>(
+      mHttpBackgroundChannel)->GetBackgroundThread();
   if (threadRetargetableRequest) {
     rv = threadRetargetableRequest->RetargetDeliveryTo(backgroundThread);
   }
@@ -764,9 +743,9 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   if (mIPCClosed)
     return NS_ERROR_UNEXPECTED;
 
-  // Send the message to the child via `HttpRetargetChannel`.
-  if (!mHttpRetargetChannel ||
-        !static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannel)->
+  // Send the message to the child via `HttpBackgroundChannel`.
+  if (!mHttpBackgroundChannel ||
+        !static_cast<HttpBackgroundChannelParent*>(mHttpBackgroundChannel)->
           ProcessOnStartRequestBackground(channelStatus,
                                           responseHead ? *responseHead : nsHttpResponseHead(),
                                           !!responseHead,
@@ -806,39 +785,19 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
   if (mIPCClosed)
     return NS_ERROR_UNEXPECTED;
 
-  // Send the message to the child via `HttpRetargetChannel`.
-  if (!mHttpRetargetChannel ||
-      !static_cast<HttpRetargetChannelParent*>(mHttpRetargetChannel)->
+  // Send the message to the child via `HttpBackgroundChannel`.
+  if (!mHttpBackgroundChannel ||
+      !static_cast<HttpBackgroundChannelParent*>(mHttpBackgroundChannel)->
         ProcessOnStopRequest(aStatusCode))
     return NS_ERROR_UNEXPECTED;
-
-  // TODO: by doing this we make sure the ref count for |this| doesn't hit 0 too
-  // early  (so now |this| will not be destroyed to early). But I have to put a
-  // break point in HttpChannelChild::Release and see where it is called so that
-  // I can make sure that in the end, the ref count for |this| will eventually
-  // get to 0 (otherwise it will mean that it leaked)
-  // Hold onto this until the child receives OnStopRequest.
-  this->AddRef();
-
-  // Delete the correponding entry from
-  // `ContentParent.mHttpRetargetChannels`
-  ContentParent* contentParent =
-    static_cast<ContentParent*>(this->Manager()->Manager());
-  contentParent->RemoveHttpRetargetChannel(this->mChannelID);
-  contentParent->RemoveHttpChannel(this->mChannelID);
 
   if (mIPCClosed || !SendOnStopRequest(aStatusCode, timing))
     return NS_ERROR_UNEXPECTED;
   mHttpRetargetChannel = nullptr;
 
-//   // TODO: do this in AsyncOpen right after you use the entry in the hashtable,
-//   // because afterwards it is no longer useful
-//   // Delete the correponding entry from
-//   // `ContentParent.mHttpRetargetChannels`
-//   ContentParent* contentParent =
-//     static_cast<ContentParent*>(this->Manager()->Manager());
-//   contentParent->RemoveHttpRetargetChannel(this->mChannelID);
-//   contentParent->RemoveHttpChannel(this->mChannelID);
+  clock_t end = clock();
+  printf("Time elapsed between OnStartrequest and OnStopRequest for channel %d [%p] is %.2f seconds\n",
+      mChannelID, this, double(end - begin));
 
   return NS_OK;
 }
@@ -872,8 +831,8 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
   // LOAD_BACKGROUND set.  In that case, they'll have garbage values, but
   // child doesn't use them.
   LOG(("HttpChannelParent::I have sent OnTransportAndData to the child: [this=%p, channelId=%d]\n",this,mChannelID));
-  if (mIPCClosed || !mHttpRetargetChannel ||
-      !mHttpRetargetChannel->SendOnTransportAndDataBackground(channelStatus,
+  if (mIPCClosed || !mHttpBackgroundChannel ||
+      !mHttpBackgroundChannel->SendOnTransportAndDataBackground(channelStatus,
                                                               mStoredStatus,
                                                               mStoredProgress,
                                                               mStoredProgressMax,
@@ -913,9 +872,9 @@ HttpChannelParent::OnProgress(nsIRequest *aRequest,
       return NS_ERROR_UNEXPECTED;
 
     // If the `OnProgress` event is processed on the background thread in the
-    // parent, then send the message to the child via `HttpRetargetChannel`.
-    if (IsOnBackgroundThread() && (!mHttpRetargetChannel ||
-                                   !mHttpRetargetChannel->
+    // parent, then send the message to the child via `HttpBackgroundChannel`.
+    if (IsOnBackgroundThread() && (!mHttpBackgroundChannel ||
+                                   !mHttpBackgroundChannel->
                                      SendOnProgressBackground(aProgress,
                                                               aProgressMax)))
       return NS_ERROR_UNEXPECTED;
@@ -945,9 +904,9 @@ HttpChannelParent::OnStatus(nsIRequest *aRequest,
     return NS_ERROR_UNEXPECTED;
 
   // If the `OnStatus` event is processed on the background thread in the
-  // parent, then send the message to the child via `HttpRetargetChannel`.
-  if (IsOnBackgroundThread() && (!mHttpRetargetChannel ||
-                                 !mHttpRetargetChannel->
+  // parent, then send the message to the child via `HttpBackgroundChannel`.
+  if (IsOnBackgroundThread() && (!mHttpBackgroundChannel ||
+                                 !mHttpBackgroundChannel->
                                    SendOnStatusBackground(aStatus)))
     return NS_ERROR_UNEXPECTED;
 

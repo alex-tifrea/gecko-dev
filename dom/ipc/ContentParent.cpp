@@ -127,7 +127,7 @@
 #include "gfxPrefs.h"
 #include "prio.h"
 #include "private/pprio.h"
-#include "mozilla/net/PHttpRetargetChannelParent.h"
+#include "mozilla/net/PHttpBackgroundChannelParent.h"
 #include "mozilla/net/PHttpChannelParent.h"
 
 #if defined(ANDROID) || defined(LINUX)
@@ -213,7 +213,7 @@ using namespace mozilla::net;
 using namespace mozilla::jsipc;
 using namespace mozilla::widget;
 
-typedef mozilla::net::PHttpRetargetChannelParent PHttpRetargetChannelParent;
+typedef mozilla::net::PHttpBackgroundChannelParent PHttpBackgroundChannelParent;
 typedef mozilla::net::PHttpChannelParent PHttpChannelParent;
 
 #ifdef ENABLE_TESTS
@@ -1701,7 +1701,7 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
 
     mIdleListeners.Clear();
 
-    mHttpRetargetChannels.Clear();
+    mHttpBackgroundChannels.Clear();
     mHttpChannels.Clear();
 
     // If the child process was terminated due to a SIGKIL, ShutDownProcess
@@ -4086,22 +4086,18 @@ ContentParent::NotifyUpdatedDictionaries()
     }
 }
 
-ContentParent::AddHttpRetargetChannel(uint32_t aKey,
-                                      PHttpRetargetChannelParent* aData)
+ContentParent::AddHttpBackgroundChannel(uint32_t aKey,
+                                      PHttpBackgroundChannelParent* aData)
 {
-  mHttpRetargetChannels.Put(aKey, aData);
+  mHttpBackgroundChannels.Put(aKey, aData);
 }
 
-PHttpRetargetChannelParent*
-ContentParent::GetHttpRetargetChannel(uint32_t aKey)
+PHttpBackgroundChannelParent*
+ContentParent::GetHttpBackgroundChannel(uint32_t aKey)
 {
-  return mHttpRetargetChannels.Get(aKey);
-}
-
-void
-ContentParent::RemoveHttpRetargetChannel(uint32_t aKey)
-{
-  mHttpRetargetChannels.Remove(aKey);
+  PHttpBackgroundChannelParent* ret = mHttpBackgroundChannels.Get(aKey);
+  mHttpBackgroundChannels.Remove(aKey);
+  return ret;
 }
 
 void
@@ -4114,13 +4110,9 @@ ContentParent::AddHttpChannel(uint32_t aKey,
 PHttpChannelParent*
 ContentParent::GetHttpChannel(uint32_t aKey)
 {
-  return mHttpChannels.Get(aKey);
-}
-
-void
-ContentParent::RemoveHttpChannel(uint32_t aKey)
-{
+  PHttpChannelParent* ret = mHttpChannels.Get(aKey);
   mHttpChannels.Remove(aKey);
+  return ret;
 }
 
 } // namespace dom

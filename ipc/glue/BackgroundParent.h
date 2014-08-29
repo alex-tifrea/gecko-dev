@@ -8,7 +8,6 @@
 #include "base/process.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ipc/Transport.h"
-#include "mozilla/StaticPtr.h"
 
 template <class> struct already_AddRefed;
 
