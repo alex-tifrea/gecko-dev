@@ -1,0 +1,49 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set ts=8 sts=2 et sw=2 tw=80 ft=cpp: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include protocol PBackground;
+
+using class mozilla::net::nsHttpHeaderArray from "mozilla/net/PHttpChannelParent.h";
+using class mozilla::net::nsHttpResponseHead from "mozilla/net/PHttpChannelParent.h";
+using mozilla::net::NetAddr from "mozilla/net/DNS.h";
+
+namespace mozilla {
+namespace net {
+
+async protocol PHttpBackgroundChannel
+{
+  manager PBackground;
+
+child:
+  OnStartRequestBackground(nsresult            channelStatus,
+                           nsHttpResponseHead  responseHead,
+                           bool                useResponseHead,
+                           nsHttpHeaderArray   requestHeaders,
+                           bool                isFromCache,
+                           bool                cacheEntryAvailable,
+                           uint32_t            cacheExpirationTime,
+                           nsCString           cachedCharset,
+                           nsCString           securityInfoSerialization,
+                           NetAddr             selfAddr,
+                           NetAddr             peerAddr,
+                           int16_t             redirectCount);
+  OnTransportAndDataBackground(nsresult   aChannelStatus,
+                               nsresult   aTransportStatus,
+                               uint64_t   aProgress,
+                               uint64_t   aProgressMax,
+                               nsCString  aData,
+                               uint64_t   aOffset,
+                               uint32_t   aCount);
+  OnProgressBackground(uint64_t   aProgress,
+                       uint64_t   aProgressMax);
+  OnStatusBackground(nsresult aStatus);
+  OnStopRequestBackground(nsresult aStatusCode);
+parent:
+  __delete__();
+};
+
+}// namespace net
+}// namespace mozilla
