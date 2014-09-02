@@ -201,7 +201,8 @@ public:
       HttpChannelParent* httpChannel =
         static_cast<HttpChannelParent*>(mContentParent->GetHttpChannel(channelId));
 
-      LOG(("HttpBackgroundChannelChild::Init [this=%p httpChannel=%p]\n",this,httpChannel));
+      LOG(("HttpBackgroundChannelParent::Init [this=%p httpChannel=%p channelId=%d]\n",
+            mHttpBackgroundChannelParent,httpChannel,channelId));
 
       if (httpChannel) {
         httpChannel->FinishAsyncOpen();

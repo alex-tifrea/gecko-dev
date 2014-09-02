@@ -796,8 +796,11 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
   mHttpRetargetChannel = nullptr;
 
   clock_t end = clock();
-  printf("Time elapsed between OnStartrequest and OnStopRequest for channel %d [%p] is %.2f seconds\n",
-      mChannelID, this, double(end - begin));
+  double duration = end - begin;
+  if (duration > 100000) {
+    printf("Time elapsed between OnStartrequest and OnStopRequest for channel [%p] is %.2f\n",
+        this, double(end - begin));
+  }
 
   return NS_OK;
 }
