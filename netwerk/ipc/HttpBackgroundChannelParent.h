@@ -13,18 +13,23 @@
 namespace mozilla {
 namespace net {
 
+/*
+ * Actor of the `PHttpBackgroundChannel` protocol, used as a transit point for
+ * the data traffic between the parent process and the child process.
+ */
 class HttpBackgroundChannelParent MOZ_FINAL :
   public PHttpBackgroundChannelParent
 {
 public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(HttpBackgroundChannelParent)
+
   HttpBackgroundChannelParent();
-  ~HttpBackgroundChannelParent();
 
-  virtual void ActorDestroy(ActorDestroyReason aWhy);
+  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
 
-  virtual bool Init(uint32_t aChannelId);
+  bool Init(uint32_t aChannelId);
 
-  virtual bool ProcessOnStartRequestBackground(const nsresult& channelStatus,
+  bool ProcessOnStartRequestBackground(const nsresult& channelStatus,
                                                const nsHttpResponseHead& responseHead,
                                                const bool& useResponseHead,
                                                const nsHttpHeaderArray& requestHeaders,
@@ -37,9 +42,11 @@ public:
                                                const NetAddr& peerAddr,
                                                const int16_t& redirectCount);
 
-  virtual bool ProcessOnStopRequest(const nsresult& aStatusCode);
+  bool ProcessOnStopRequest(const nsresult& aStatusCode);
 
-  virtual void NotifyRedirect(uint32_t newChannelId);
+  // Called to link the `HttpBackgroundChannelParent` to the new
+  // `HttpChannelParent` after redirecting.
+  void NotifyRedirect(uint32_t newChannelId);
 
   uint32_t GetChannelId() { return mChannelId; }
 
@@ -48,6 +55,8 @@ public:
   bool GetIPCClosed() { return mIPCClosed; }
 
 private:
+  ~HttpBackgroundChannelParent();
+
   uint32_t mChannelId;
   nsCOMPtr<nsIThread> mBackgroundThread;
   bool mIPCClosed;

@@ -38,8 +38,6 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
 
-#include <ctime>
-
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
 
@@ -373,7 +371,8 @@ HttpChannelParent::StartAsyncOpen( const URIParams&           aURI,
   // mHttpBackgroundChannels hashtable, that resides in ContentParent
   ContentParent* contentParent =
     static_cast<ContentParent*>(this->Manager()->Manager());
-  mHttpBackgroundChannel = contentParent->GetHttpBackgroundChannel(this->mChannelID);
+  mHttpBackgroundChannel = static_cast<HttpBackgroundChannelParent*>(contentParent->
+      TakeHttpBackgroundChannel(this->mChannelID));
 
   if (mHttpBackgroundChannel) {
     FinishAsyncOpen();
@@ -666,7 +665,6 @@ NS_IMETHODIMP
 HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
 {
   LOG(("HttpChannelParent::OnStartRequest [this=%p]\n", this));
-  begin = clock();
 
   MOZ_RELEASE_ASSERT(!mDivertingFromChild,
     "Cannot call OnStartRequest if diverting is set!");
@@ -723,39 +721,36 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
 
   uint16_t redirectCount = 0;
   mChannel->GetRedirectCount(&redirectCount);
-  LOG(("HttpChannelParent::I have sent OnStartRequest to the child: [this=%p, channelId=%d]\n",this,mChannelID));
 
   nsresult rv;
   nsCOMPtr<nsIThreadRetargetableRequest> threadRetargetableRequest =
     do_QueryInterface(aRequest, &rv);
-  nsCOMPtr<nsIThread> backgroundThread = static_cast<HttpBackgroundChannelParent*>(
-      mHttpBackgroundChannel)->GetBackgroundThread();
+
   if (threadRetargetableRequest) {
+    nsIThread* backgroundThread = mHttpBackgroundChannel->
+      GetBackgroundThread();
+    MOZ_ASSERT(backgroundThread, "Failed to get background thread.");
     rv = threadRetargetableRequest->RetargetDeliveryTo(backgroundThread);
   }
 
-  backgroundThread = nullptr;
-
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Failed to retarget data delivery to the background thread.");
-  }
+  MOZ_ASSERT(NS_SUCCEEDED(rv) && threadRetargetableRequest, "Failed to retarget data delivery to the background thread.");
 
   if (mIPCClosed)
     return NS_ERROR_UNEXPECTED;
 
   // Send the message to the child via `HttpBackgroundChannel`.
-  if (!mHttpBackgroundChannel ||
-        !static_cast<HttpBackgroundChannelParent*>(mHttpBackgroundChannel)->
-          ProcessOnStartRequestBackground(channelStatus,
-                                          responseHead ? *responseHead : nsHttpResponseHead(),
-                                          !!responseHead,
-                                          requestHead->Headers(),
-                                          isFromCache,
-                                          mCacheEntry ? true : false,
-                                          expirationTime, cachedCharset, secInfoSerialization,
-                                          mChannel->GetSelfAddr(), mChannel->GetPeerAddr(),
-                                          redirectCount))
+  if (!mHttpBackgroundChannel->
+         ProcessOnStartRequestBackground(channelStatus,
+                                         responseHead ? *responseHead : nsHttpResponseHead(),
+                                         !!responseHead,
+                                         requestHead->Headers(),
+                                         isFromCache,
+                                         !!mCacheEntry,
+                                         expirationTime, cachedCharset, secInfoSerialization,
+                                         mChannel->GetSelfAddr(), mChannel->GetPeerAddr(),
+                                         redirectCount)) {
     return NS_ERROR_UNEXPECTED;
+  }
 
   return NS_OK;
 }
@@ -786,20 +781,9 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
     return NS_ERROR_UNEXPECTED;
 
   // Send the message to the child via `HttpBackgroundChannel`.
-  if (!mHttpBackgroundChannel ||
-      !static_cast<HttpBackgroundChannelParent*>(mHttpBackgroundChannel)->
-        ProcessOnStopRequest(aStatusCode))
+  if (!mHttpBackgroundChannel->
+        ProcessOnStopRequest(aStatusCode)) {
     return NS_ERROR_UNEXPECTED;
-
-  if (mIPCClosed || !SendOnStopRequest(aStatusCode, timing))
-    return NS_ERROR_UNEXPECTED;
-  mHttpRetargetChannel = nullptr;
-
-  clock_t end = clock();
-  double duration = end - begin;
-  if (duration > 100000) {
-    printf("Time elapsed between OnStartrequest and OnStopRequest for channel [%p] is %.2f\n",
-        this, double(end - begin));
   }
 
   return NS_OK;
@@ -833,15 +817,13 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
   // mStoredStatus/mStoredProgress(Max) to appropriate values, unless
   // LOAD_BACKGROUND set.  In that case, they'll have garbage values, but
   // child doesn't use them.
-  LOG(("HttpChannelParent::I have sent OnTransportAndData to the child: [this=%p, channelId=%d]\n",this,mChannelID));
-  if (mIPCClosed || !mHttpBackgroundChannel ||
-      !mHttpBackgroundChannel->SendOnTransportAndDataBackground(channelStatus,
-                                                              mStoredStatus,
-                                                              mStoredProgress,
-                                                              mStoredProgressMax,
-                                                              data,
-                                                              aOffset,
-                                                              aCount)) {
+  if (mIPCClosed || !mHttpBackgroundChannel->SendOnTransportAndDataBackground(channelStatus,
+                                                                              mStoredStatus,
+                                                                              mStoredProgress,
+                                                                              mStoredProgressMax,
+                                                                              data,
+                                                                              aOffset,
+                                                                              aCount)) {
     return NS_ERROR_UNEXPECTED;
   }
   return NS_OK;
@@ -857,6 +839,7 @@ HttpChannelParent::OnProgress(nsIRequest *aRequest,
                               uint64_t aProgress,
                               uint64_t aProgressMax)
 {
+  MOZ_ASSERT(IsOnBackgroundThread(), "Should be on the background thread when receiving OnProgress.");
   // OnStatus has always just set mStoredStatus. If it indicates this precedes
   // OnDataAvailable, store and ODA will send to child.
   if (mStoredStatus == NS_NET_STATUS_RECEIVING_FROM ||
@@ -871,16 +854,12 @@ HttpChannelParent::OnProgress(nsIRequest *aRequest,
     if (mIPCClosed)
       return NS_ERROR_UNEXPECTED;
 
-    if (NS_IsMainThread() && !SendOnProgress(aProgress, aProgressMax))
-      return NS_ERROR_UNEXPECTED;
-
     // If the `OnProgress` event is processed on the background thread in the
     // parent, then send the message to the child via `HttpBackgroundChannel`.
-    if (IsOnBackgroundThread() && (!mHttpBackgroundChannel ||
-                                   !mHttpBackgroundChannel->
-                                     SendOnProgressBackground(aProgress,
-                                                              aProgressMax)))
+    if (!mHttpBackgroundChannel->SendOnProgressBackground(aProgress,
+                                                          aProgressMax)) {
       return NS_ERROR_UNEXPECTED;
+    }
   }
 
   return NS_OK;
@@ -892,6 +871,7 @@ HttpChannelParent::OnStatus(nsIRequest *aRequest,
                             nsresult aStatus,
                             const char16_t *aStatusArg)
 {
+  MOZ_ASSERT(IsOnBackgroundThread(), "Should be on the background thread when receiving OnStatus.");
   // If this precedes OnDataAvailable, store and ODA will send to child.
   if (aStatus == NS_NET_STATUS_RECEIVING_FROM ||
       aStatus == NS_NET_STATUS_READING)
@@ -903,15 +883,11 @@ HttpChannelParent::OnStatus(nsIRequest *aRequest,
   if (mIPCClosed)
     return NS_ERROR_UNEXPECTED;
 
-  if (NS_IsMainThread() && !SendOnStatus(aStatus))
-    return NS_ERROR_UNEXPECTED;
-
   // If the `OnStatus` event is processed on the background thread in the
   // parent, then send the message to the child via `HttpBackgroundChannel`.
-  if (IsOnBackgroundThread() && (!mHttpBackgroundChannel ||
-                                 !mHttpBackgroundChannel->
-                                   SendOnStatusBackground(aStatus)))
+  if (!mHttpBackgroundChannel->SendOnStatusBackground(aStatus)) {
     return NS_ERROR_UNEXPECTED;
+  }
 
   return NS_OK;
 }
@@ -1219,9 +1195,8 @@ HttpChannelParent::GetAuthPrompt(uint32_t aPromptReason, const nsIID& iid,
 NS_IMETHODIMP
 HttpChannelParent::CheckListenerChain()
 {
-    NS_ASSERTION(NS_IsMainThread(), "Should be on main thread!");
-    nsresult rv = NS_OK;
-    return rv;
+    MOZ_ASSERT(NS_IsMainThread(), "Should be on main thread!");
+    return NS_OK;
 }
 
 }} // mozilla::net

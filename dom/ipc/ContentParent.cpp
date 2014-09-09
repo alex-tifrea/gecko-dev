@@ -1703,6 +1703,7 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
 
     mHttpBackgroundChannels.Clear();
     mHttpChannels.Clear();
+    mMustCallAsyncOpen.Clear();
 
     // If the child process was terminated due to a SIGKIL, ShutDownProcess
     // might not have been called yet.  We must call it to ensure that our

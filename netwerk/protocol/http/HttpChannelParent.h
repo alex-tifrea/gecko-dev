@@ -19,11 +19,9 @@
 #include "nsIProgressEventSink.h"
 #include "nsHttpChannel.h"
 #include "nsIAuthPromptProvider.h"
-#include "mozilla/net/PHttpBackgroundChannelParent.h"
+#include "mozilla/net/HttpBackgroundChannelParent.h"
 #include "nsIThreadRetargetableStreamListener.h"
 #include "nsPIThreadRetargetableProgressSink.h"
-
-#include <ctime>
 
 typedef mozilla::net::PHttpBackgroundChannelParent PHttpBackgroundChannelParent;
 
@@ -94,7 +92,7 @@ public:
 
   void SetHttpBackgroundChannel(PHttpBackgroundChannelParent* aHttpBackgroundChannel)
   {
-    mHttpBackgroundChannel = aHttpBackgroundChannel;
+    mHttpBackgroundChannel = static_cast<HttpBackgroundChannelParent*>(aHttpBackgroundChannel);
   }
 
   bool FinishAsyncOpen();
@@ -209,7 +207,7 @@ private:
 
   // A reference to the coresponding PHttpBackgroundChannel actor. The reference
   // is looked up in the mHttpBackgroundChannels hashtable.
-  PHttpBackgroundChannelParent* mHttpBackgroundChannel;
+  nsRefPtr<HttpBackgroundChannelParent> mHttpBackgroundChannel;
 
   uint32_t mChannelID;
 };

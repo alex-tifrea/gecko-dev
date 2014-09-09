@@ -8,6 +8,7 @@
 #include "base/process.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ipc/Transport.h"
+#include "nsContentUtils.h"
 
 template <class> struct already_AddRefed;
 
@@ -36,6 +37,9 @@ class BackgroundParent MOZ_FINAL
   typedef mozilla::ipc::Transport Transport;
 
 public:
+  static nsresult
+  DispatchToBackgroundThread(nsIRunnable* aRunnable, unsigned long aFlags);
+
   // This function allows the caller to determine if the given parent actor
   // corresponds to a child actor from another process or a child actor from a
   // different thread in the same process.

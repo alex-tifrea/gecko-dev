@@ -15,14 +15,19 @@ namespace net {
 
 class PHttpChannelChild;
 
+/*
+ * Actor of the `PHttpBackgroundChannel` protocol, used as a transit point for
+ * the data traffic between the parent process and the child process.
+ */
 class HttpBackgroundChannelChild MOZ_FINAL :
   public PHttpBackgroundChannelChild
 {
 public:
-  HttpBackgroundChannelChild();
-  ~HttpBackgroundChannelChild();
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(HttpBackgroundChannelChild)
 
-  virtual nsresult Init(PHttpChannelChild* aHttpChannel);
+  HttpBackgroundChannelChild();
+
+  nsresult Init(PHttpChannelChild* aHttpChannel);
 
   virtual bool RecvOnStartRequestBackground(const nsresult& channelStatus,
                                             const nsHttpResponseHead& responseHead,
@@ -52,11 +57,15 @@ public:
 
   virtual bool RecvOnStopRequestBackground(const nsresult& aStatusCode) MOZ_OVERRIDE;
 
-  virtual void NotifyRedirect(mozilla::net::PHttpChannelChild* newChannel);
+  // Called to link the `HttpBackgroundChannelChild` to the new
+  // `HttpChannelChild` after redirecting.
+  void NotifyRedirect(mozilla::net::PHttpChannelChild* newChannel);
 
   uint32_t GetChannelId() { return mChannelId; }
 
 private:
+  ~HttpBackgroundChannelChild();
+
   uint32_t mChannelId;
   PHttpChannelChild* mHttpChannel;
 };

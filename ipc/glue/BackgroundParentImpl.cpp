@@ -152,7 +152,7 @@ BackgroundParentImpl::DeallocPHttpBackgroundChannelParent(PHttpBackgroundChannel
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(aActor);
 
-  delete static_cast<HttpBackgroundChannelParent*>(aActor);
+  static_cast<HttpBackgroundChannelParent*>(aActor)->Release();
   return true;
 }
 

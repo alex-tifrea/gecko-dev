@@ -103,19 +103,19 @@ public:
   }
 
 private:
-  const nsresult                  mChannelStatus;
-  const net::nsHttpResponseHead   mResponseHead;
-  const bool                      mUseResponseHead;
-  const net::nsHttpHeaderArray    mRequestHeaders;
-  const bool                      mIsFromCache;
-  const bool                      mCacheEntryAvailable;
-  const uint32_t                  mCacheExpirationTime;
-  const nsCString                 mCachedCharset;
-  const nsCString                 mSecurityInfoSerialization;
-  const NetAddr                   mSelfAddr;
-  const NetAddr                   mPeerAddr;
-  const int16_t                   mRedirectCount;
-  HttpBackgroundChannelParent*      mHttpBackgroundChannelParent;
+  const nsresult                             mChannelStatus;
+  const net::nsHttpResponseHead              mResponseHead;
+  const bool                                 mUseResponseHead;
+  const net::nsHttpHeaderArray               mRequestHeaders;
+  const bool                                 mIsFromCache;
+  const bool                                 mCacheEntryAvailable;
+  const uint32_t                             mCacheExpirationTime;
+  const nsCString                            mCachedCharset;
+  const nsCString                            mSecurityInfoSerialization;
+  const NetAddr                              mSelfAddr;
+  const NetAddr                              mPeerAddr;
+  const int16_t                              mRedirectCount;
+  nsRefPtr<HttpBackgroundChannelParent>      mHttpBackgroundChannelParent;
 };
 
 //-----------------------------------------------------------------------------
@@ -150,7 +150,7 @@ public:
 
 private:
   const nsresult mStatusCode;
-  HttpBackgroundChannelParent* mHttpBackgroundChannelParent;
+  nsRefPtr<HttpBackgroundChannelParent> mHttpBackgroundChannelParent;
 };
 
 //-----------------------------------------------------------------------------
@@ -198,19 +198,20 @@ public:
       // then the responsability for calling `HttpChannelParent::FinishAsyncOpen` is
       // passed to `AddHttpBackgroundChannel::Run()`.
 
-      HttpChannelParent* httpChannel =
-        static_cast<HttpChannelParent*>(mContentParent->GetHttpChannel(channelId));
+      nsRefPtr<HttpChannelParent> httpChannel =
+        static_cast<HttpChannelParent*>(mContentParent->TakeHttpChannel(channelId));
 
       LOG(("HttpBackgroundChannelParent::Init [this=%p httpChannel=%p channelId=%d]\n",
-            mHttpBackgroundChannelParent,httpChannel,channelId));
+            mHttpBackgroundChannelParent.get(),httpChannel.get(),channelId));
 
-      if (httpChannel) {
-        httpChannel->FinishAsyncOpen();
-      } else {
+      if (!httpChannel) {
         return NS_ERROR_FAILURE;
       }
 
       httpChannel->SetHttpBackgroundChannel(mHttpBackgroundChannelParent);
+
+      httpChannel->FinishAsyncOpen();
+
       mContentParent->ResetMustCallAsyncOpen(channelId);
       return NS_OK;
     }
@@ -225,7 +226,7 @@ public:
 
 private:
   nsRefPtr<ContentParent> mContentParent;
-  HttpBackgroundChannelParent* mHttpBackgroundChannelParent;
+  nsRefPtr<HttpBackgroundChannelParent> mHttpBackgroundChannelParent;
 };
 
 } // namespace mozilla

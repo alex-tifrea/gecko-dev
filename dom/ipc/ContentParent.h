@@ -285,29 +285,48 @@ public:
         PBlobParent* aActor,
         const BlobConstructorParams& aParams) MOZ_OVERRIDE;
 
-    virtual void AddHttpBackgroundChannel(uint32_t aKey,
-                                        mozilla::net::PHttpBackgroundChannelParent* aData);
+    MOZ_ALWAYS_INLINE void AddHttpBackgroundChannel(uint32_t aKey,
+                                                    mozilla::net::PHttpBackgroundChannelParent* aData)
+    {
+        mHttpBackgroundChannels.Put(aKey, aData);
+    }
 
     // Returns the `PHttpBackgroundChannelParent` reference stored in the
     // hashtable and implicitly deletes it from the hashtable afterwards
-    virtual mozilla::net::PHttpBackgroundChannelParent* GetHttpBackgroundChannel(uint32_t aKey);
+    MOZ_ALWAYS_INLINE mozilla::net::PHttpBackgroundChannelParent*
+    TakeHttpBackgroundChannel(uint32_t aKey)
+    {
+        mozilla::net::PHttpBackgroundChannelParent* ret = mHttpBackgroundChannels.Get(aKey);
+        mHttpBackgroundChannels.Remove(aKey);
+        return ret;
+    }
 
-    virtual void AddHttpChannel(uint32_t aKey, mozilla::net::PHttpChannelParent* aData);
+    MOZ_ALWAYS_INLINE void AddHttpChannel(uint32_t aKey,
+                                          mozilla::net::PHttpChannelParent* aData)
+    {
+        mHttpChannels.Put(aKey, aData);
+    }
 
     // Returns the `PHttpChannelParent` reference stored in the
     // hashtable and implicitly deletes it from the hashtable afterwards
-    virtual mozilla::net::PHttpChannelParent* GetHttpChannel(uint32_t aKey);
-
-    void SetMustCallAsyncOpen(uint32_t aChannelId) {
-      mMustCallAsyncOpen.PutEntry(aChannelId);
+    MOZ_ALWAYS_INLINE mozilla::net::PHttpChannelParent*
+    TakeHttpChannel(uint32_t aKey)
+    {
+        mozilla::net::PHttpChannelParent* ret = mHttpChannels.Get(aKey);
+        mHttpChannels.Remove(aKey);
+        return ret;
     }
 
-    void ResetMustCallAsyncOpen(uint32_t aChannelId) {
-      mMustCallAsyncOpen.RemoveEntry(aChannelId);
+    MOZ_ALWAYS_INLINE void SetMustCallAsyncOpen(uint32_t aChannelId) {
+        mMustCallAsyncOpen.PutEntry(aChannelId);
     }
 
-    bool GetMustCallAsyncOpen(uint32_t aChannelId) {
-      return mMustCallAsyncOpen.GetEntry(aChannelId) ? true : false;
+    MOZ_ALWAYS_INLINE void ResetMustCallAsyncOpen(uint32_t aChannelId) {
+        mMustCallAsyncOpen.RemoveEntry(aChannelId);
+    }
+
+    MOZ_ALWAYS_INLINE bool GetMustCallAsyncOpen(uint32_t aChannelId) {
+        return mMustCallAsyncOpen.GetEntry(aChannelId) ? true : false;
     }
 
 protected:
@@ -752,10 +771,6 @@ private:
     bool mCalledCloseWithError;
     bool mCalledKillHard;
 
-    // If | mMustCallAsyncOpen | is true, then AddToHashtableRunnable::Run()
-    // needs to call AsyncOpen for a given http channel
-    nsTHashtable<nsUint32HashKey> mMustCallAsyncOpen;
-
     friend class CrashReporterParent;
 
     nsRefPtr<nsConsoleService>  mConsoleService;
@@ -766,6 +781,12 @@ private:
     nsDataHashtable<nsUint32HashKey,
                     mozilla::net::PHttpBackgroundChannelParent*> mHttpBackgroundChannels;
     nsDataHashtable<nsUint32HashKey, mozilla::net::PHttpChannelParent*> mHttpChannels;
+
+    // If | mMustCallAsyncOpen | is true, then AddToHashtableRunnable::Run()
+    // needs to call AsyncOpen for a given http channel
+    // Used in conjunction with HTTP channel hash-tables: mHttpChannels and
+    // mHttpBackgroundChannels.
+    nsTHashtable<nsUint32HashKey> mMustCallAsyncOpen;
 
 #ifdef MOZ_X11
     // Dup of child's X socket, used to scope its resources to this

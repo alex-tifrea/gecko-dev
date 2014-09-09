@@ -11,6 +11,7 @@
 #include "mozilla/net/HttpChannelChild.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/PBackgroundChild.h"
+#include "nsIIPCBackgroundChildCreateCallback.h"
 
 using namespace mozilla::dom;
 
@@ -18,6 +19,40 @@ namespace mozilla {
 namespace net {
 
 class HttpChannelChild;
+
+class BackgroundChildCallback MOZ_FINAL :
+  public nsIIPCBackgroundChildCreateCallback
+{
+public:
+    BackgroundChildCallback(HttpBackgroundChannelChild* aHttpBackgroundChild)
+      : mHttpBackgroundChild(aHttpBackgroundChild)
+    { }
+
+    NS_DECL_ISUPPORTS
+
+private:
+    ~BackgroundChildCallback()
+    { }
+
+    virtual void
+    ActorCreated(PBackgroundChild* aActor) MOZ_OVERRIDE
+    {
+        MOZ_ASSERT(aActor, "Failed to create a PBackgroundChild actor!");
+
+        aActor->SendPHttpBackgroundChannelConstructor(mHttpBackgroundChild,
+                                                      mHttpBackgroundChild->GetChannelId());
+    }
+
+    virtual void
+    ActorFailed() MOZ_OVERRIDE
+    {
+        MOZ_CRASH("Failed to create a PBackgroundChild actor!");
+    }
+
+    nsRefPtr<HttpBackgroundChannelChild> mHttpBackgroundChild;
+};
+
+NS_IMPL_ISUPPORTS(BackgroundChildCallback, nsIIPCBackgroundChildCreateCallback)
 
 HttpBackgroundChannelChild::HttpBackgroundChannelChild()
 {
@@ -45,14 +80,25 @@ HttpBackgroundChannelChild::Init(PHttpChannelChild* aHttpChannel)
   LOG(("HttpBackgroundChannelChild::Init [this=%p httpChannel=%p channelId=%d]\n",
         this,aHttpChannel,mChannelId));
 
-  PBackgroundChild* backgroundChild =
-    mozilla::ipc::BackgroundChild::GetForCurrentThread();
-
-  if (!backgroundChild) {
-    return NS_ERROR_FAILURE;
+  PBackgroundChild* backgroundChild = nullptr;
+  nsCOMPtr<nsIIPCBackgroundChildCreateCallback> callback =
+    new BackgroundChildCallback(this);
+  if (!BackgroundChild::GetOrCreateForCurrentThread(callback)) {
+    MOZ_CRASH("Failed to create PBackgroundChild!");
   }
 
-  backgroundChild->SendPHttpBackgroundChannelConstructor(this, mChannelId);
+  // TODO: this is how it used to be; now I use GetOrCreateForCurrentThread
+  // instead
+//   PBackgroundChild* backgroundChild =
+//     mozilla::ipc::BackgroundChild::GetForCurrentThread();
+
+//   if (!backgroundChild) {
+//     // XXX: I have added this to see if it ever crashed because of
+//     // backgroundChild being null. If it does, then I will have to use
+//     // `GetOrCreateForCurrentThread` instead.
+//     MOZ_ASSERT_UNREACHABLE("Cannot proceed because the PBackground actor in the child is null.");
+//     return NS_ERROR_FAILURE;
+//   }
 
   mHttpChannel = aHttpChannel;
 
@@ -132,7 +178,8 @@ void
 HttpBackgroundChannelChild::NotifyRedirect(PHttpChannelChild* newChannel)
 {
   uint32_t newChannelId = static_cast<HttpChannelChild*>(newChannel)->GetChannelId();
-  LOG(("HttpBackgroundChannelChild::Redirect [this=%p,oldHttpChannel=%p,newHttpChannel=%p,oldChannelId=%d,newChannelId=%d]\n",
+  LOG(("HttpBackgroundChannelChild::Redirect [this=%p,oldHttpChannel=%p, \
+        newHttpChannel=%p,oldChannelId=%d,newChannelId=%d]\n",
         this, mHttpChannel, newChannel, mChannelId, newChannelId));
   mHttpChannel = newChannel;
   mChannelId = newChannelId;

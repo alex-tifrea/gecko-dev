@@ -849,7 +849,7 @@ HttpChannelChild::Redirect1Begin(const uint32_t& newChannelId,
 
   mRedirectChannelChild = do_QueryInterface(newChannel);
   if (mRedirectChannelChild) {
-    static_cast<HttpChannelChild*>(mRedirectChannelChild.get())->ConnectParent(newChannelId);
+    mRedirectChannelChild->ConnectParent(newChannelId);
     rv = gHttpHandler->AsyncOnChannelRedirect(this,
                                               newChannel,
                                               redirectFlags);
@@ -948,11 +948,11 @@ HttpChannelChild::Redirect3Complete()
                                                       mListenerContext);
   }
 
+  // Transferring reference of mHttpBackgroundChannel to mRedirectChannelChild.
   HttpChannelChild* httpChannelChild =
     static_cast<HttpChannelChild*>(mRedirectChannelChild.get());
   httpChannelChild->SetHttpBackgroundChannel(mHttpBackgroundChannel);
-  static_cast<HttpBackgroundChannelChild*>(mHttpBackgroundChannel)->
-    NotifyRedirect(httpChannelChild);
+  mHttpBackgroundChannel->NotifyRedirect(httpChannelChild);
   mHttpBackgroundChannel = nullptr;
 
   // Redirecting to new channel: shut this down and init new channel

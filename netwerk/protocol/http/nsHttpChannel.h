@@ -124,6 +124,8 @@ public:
     NS_IMETHOD GetResponseEnd(mozilla::TimeStamp *aResponseEnd);
 
 public: /* internal necko use only */
+    nsresult OnStatusAndProgress(nsITransport *trans, nsresult status,
+                                 uint64_t progress, uint64_t progressMax);
 
     void InternalSetUploadStream(nsIInputStream *uploadStream)
       { mUploadStream = uploadStream; }

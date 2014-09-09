@@ -967,6 +967,13 @@ nsHttpChannel::CallOnStartRequest()
         }
     }
 
+    // cache the progress sink so we don't have to query for it each time.
+    if (!mProgressSink)
+        GetCallback(mProgressSink);
+
+    if (!mRetargetableProgressSink)
+        GetCallback(mRetargetableProgressSink);
+
     return NS_OK;
 }
 
@@ -5033,13 +5040,6 @@ nsHttpChannel::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
         PopRedirectAsyncFunc(&nsHttpChannel::ContinueOnStartRequest1);
     }
 
-    // cache the progress sink so we don't have to query for it each time.
-    if (!mProgressSink)
-        GetCallback(mProgressSink);
-
-    if (!mRetargetableProgressSink)
-        GetCallback(mRetargetableProgressSink);
-
     return ContinueOnStartRequest2(NS_OK);
 }
 
@@ -5286,27 +5286,28 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
 // nsHttpChannel::nsIStreamListener
 //-----------------------------------------------------------------------------
 
-class OnTransportStatusAsyncEvent : public nsRunnable
+class OnStatusAndProgressAsyncEvent : public nsRunnable
 {
 public:
-    OnTransportStatusAsyncEvent(nsITransportEventSink* aEventSink,
-                                nsresult aTransportStatus,
-                                uint64_t aProgress,
-                                uint64_t aProgressMax)
+    OnStatusAndProgressAsyncEvent(nsITransportEventSink* aEventSink,
+                                  nsresult aTransportStatus,
+                                  uint64_t aProgress,
+                                  uint64_t aProgressMax)
     : mEventSink(aEventSink)
     , mTransportStatus(aTransportStatus)
     , mProgress(aProgress)
     , mProgressMax(aProgressMax)
     {
-        MOZ_ASSERT(!NS_IsMainThread(), "Shouldn't be created on main thread");
+        //TODO: this shouldn't be here
+//         MOZ_ASSERT(!NS_IsMainThread(), "Shouldn't be created on main thread");
     }
 
     NS_IMETHOD Run()
     {
-        MOZ_ASSERT(NS_IsMainThread(), "Should run on main thread");
+//         MOZ_ASSERT(NS_IsMainThread(), "Should run on main thread");
         if (mEventSink) {
-            mEventSink->OnTransportStatus(nullptr, mTransportStatus,
-                                          mProgress, mProgressMax);
+            static_cast<nsHttpChannel*>(mEventSink.get())->OnStatusAndProgress(nullptr, mTransportStatus,
+                                            mProgress, mProgressMax);
         }
         return NS_OK;
     }
@@ -5367,11 +5368,11 @@ nsHttpChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
                        "is server exceeding content length?");
 
         if (NS_IsMainThread() || mRetargetableProgressSink) {
-            OnTransportStatus(nullptr, transportStatus, progress, progressMax);
+            OnStatusAndProgress(nullptr, transportStatus, progress, progressMax);
         } else {
             nsresult rv = NS_DispatchToMainThread(
-                new OnTransportStatusAsyncEvent(this, transportStatus,
-                                                progress, progressMax));
+                new OnStatusAndProgressAsyncEvent(this, transportStatus,
+                                                  progress, progressMax));
             NS_ENSURE_SUCCESS(rv, rv);
         }
 
@@ -5440,7 +5441,8 @@ nsHttpChannel::RetargetDeliveryTo(nsIEventTarget* aNewTarget)
         NS_WARNING("Retargeting delivery to same thread");
         return NS_OK;
     }
-    NS_ENSURE_TRUE(mTransactionPump || mCachePump, NS_ERROR_NOT_AVAILABLE);
+//     NS_ENSURE_TRUE(mTransactionPump || mCachePump, NS_ERROR_NOT_AVAILABLE);
+    MOZ_ASSERT(mTransactionPump || mCachePump, "SHOULD NOT BE LIKE THIS");
 
     nsresult rv = NS_OK;
     // If both cache pump and transaction pump exist, we're probably dealing
@@ -5495,12 +5497,7 @@ NS_IMETHODIMP
 nsHttpChannel::OnTransportStatus(nsITransport *trans, nsresult status,
                                  uint64_t progress, uint64_t progressMax)
 {
-    if (!mozilla::ipc::IsOnBackgroundThread()) {
-     //XXX: I am not sure I understand what needs to be done here. From
-     //sworkman's review I understand that OnTransportStatus may sometimes be
-     //called by somewhere other than OnDataAvailable. What should be done in
-     //this case?   
-    }
+    NS_ASSERTION(NS_IsMainThread(), "Should be on main thread!");
 
     if (status == NS_NET_STATUS_CONNECTED_TO ||
         status == NS_NET_STATUS_WAITING_FOR) {
@@ -5512,6 +5509,23 @@ nsHttpChannel::OnTransportStatus(nsITransport *trans, nsresult status,
         }
     }
 
+    if (!mRetargetableProgressSink) {
+        OnStatusAndProgress(nullptr, status, progress, progressMax);
+    } else {
+        nsresult rv = ipc::BackgroundParent::DispatchToBackgroundThread(new OnStatusAndProgressAsyncEvent(this,
+                                                                                   status,
+                                                                                   progress, progressMax),
+                                                 nsIEventTarget::DISPATCH_NORMAL);
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
+
+    return NS_OK;
+}
+
+nsresult
+nsHttpChannel::OnStatusAndProgress(nsITransport *trans, nsresult status,
+                                   uint64_t progress, uint64_t progressMax)
+{
     // block socket status event after Cancel or OnStopRequest has been called.
     if (mProgressSink && NS_SUCCEEDED(mStatus) && mIsPending) {
         LOG(("sending progress%s notification [this=%p status=%x"

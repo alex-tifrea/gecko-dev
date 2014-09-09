@@ -29,8 +29,6 @@
 #include "nsIHttpChannelChild.h"
 #include "nsIDivertableChannel.h"
 #include "mozilla/net/DNS.h"
-#include "mozilla/ipc/PBackgroundChild.h"
-#include "mozilla/net/PHttpBackgroundChannelChild.h"
 #include "mozilla/net/HttpBackgroundChannelChild.h"
 
 using namespace mozilla::ipc;
@@ -104,7 +102,7 @@ public:
 
   void SetHttpBackgroundChannel(HttpBackgroundChannelChild* aHttpBackgroundChannel)
   {
-    mHttpBackgroundChannel = aHttpBackgroundChannel;
+    mHttpBackgroundChannel = static_cast<HttpBackgroundChannelChild*>(aHttpBackgroundChannel);
   }
 
   uint32_t GetChannelId() { return mChannelId; }
@@ -178,9 +176,10 @@ private:
   // The corresponding `HttpBackgroundChannelChild`. It is created during
   // `HttpChannelChild::AsyncOpen` and is transfered from the old channel over
   // to the new one when redirecting (in `HttpChannelChild::Redirect3Complete`).
-  HttpBackgroundChannelChild* mHttpBackgroundChannel;
+  nsRefPtr<HttpBackgroundChannelChild> mHttpBackgroundChannel;
 
-  uint32_t mChannelId;
+  // The ID of the HTTP channel used for IPDL purposes
+  uint32_t                          mChannelId;
 
   // true after successful AsyncOpen until OnStopRequest completes.
   bool RemoteChannelExists() { return mIPCOpen && !mKeptAlive; }

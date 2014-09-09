@@ -224,6 +224,10 @@ public:
 
 private:
   // Forwarded from BackgroundParent.
+  static nsresult
+  DispatchToBackgroundThread(nsIRunnable* aRunnable, unsigned long aFlags);
+
+  // Forwarded from BackgroundParent.
   static bool
   IsOtherProcessActor(PBackgroundParent* aBackgroundActor);
 
@@ -827,6 +831,11 @@ AssertIsOnBackgroundThread()
 // -----------------------------------------------------------------------------
 // BackgroundParent Public Methods
 // -----------------------------------------------------------------------------
+// static
+nsresult
+BackgroundParent::DispatchToBackgroundThread(nsIRunnable* aRunnable, unsigned long aFlags) {
+  return ParentImpl::sBackgroundThread->Dispatch(aRunnable, aFlags);
+}
 
 // static
 bool
