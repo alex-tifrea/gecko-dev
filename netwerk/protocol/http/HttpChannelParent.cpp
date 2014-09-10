@@ -723,17 +723,25 @@ HttpChannelParent::OnStartRequest(nsIRequest *aRequest, nsISupports *aContext)
   mChannel->GetRedirectCount(&redirectCount);
 
   nsresult rv;
-  nsCOMPtr<nsIThreadRetargetableRequest> threadRetargetableRequest =
-    do_QueryInterface(aRequest, &rv);
 
-  if (threadRetargetableRequest) {
-    nsIThread* backgroundThread = mHttpBackgroundChannel->
-      GetBackgroundThread();
-    MOZ_ASSERT(backgroundThread, "Failed to get background thread.");
-    rv = threadRetargetableRequest->RetargetDeliveryTo(backgroundThread);
+  
+  if (NS_SUCCEEDED(channelStatus)) {
+    nsCOMPtr<nsIThreadRetargetableRequest> threadRetargetableRequest =
+      do_QueryInterface(aRequest, &rv);
+
+    MOZ_ASSERT(NS_SUCCEEDED(rv) && threadRetargetableRequest, "Failed to get retargetable.");
+
+    if (threadRetargetableRequest) {
+      nsIThread* backgroundThread = mHttpBackgroundChannel->
+        GetBackgroundThread();
+      MOZ_ASSERT(backgroundThread, "Failed to get background thread.");
+      rv = threadRetargetableRequest->RetargetDeliveryTo(backgroundThread);
+
+      MOZ_ASSERT(NS_SUCCEEDED(rv), "Failed to retarget data delivery to the background thread.");
+    }
+  } else {
+    NS_WARNING("Channel canceled. Not retargeting to background thread.");
   }
-
-  MOZ_ASSERT(NS_SUCCEEDED(rv) && threadRetargetableRequest, "Failed to retarget data delivery to the background thread.");
 
   if (mIPCClosed)
     return NS_ERROR_UNEXPECTED;
@@ -800,6 +808,7 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
                                    uint64_t aOffset,
                                    uint32_t aCount)
 {
+  MOZ_ASSERT(IsOnBackgroundThread(), "Should be on the background thread when receiving OnProgress.");
   LOG(("HttpChannelParent::OnDataAvailable [this=%p]\n", this));
 
   MOZ_RELEASE_ASSERT(!mDivertingFromChild,

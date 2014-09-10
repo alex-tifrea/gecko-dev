@@ -5454,6 +5454,7 @@ nsHttpChannel::RetargetDeliveryTo(nsIEventTarget* aNewTarget)
         // nsInputStreamPump should implement this interface.
         MOZ_ASSERT(retargetableCachePump);
         rv = retargetableCachePump->RetargetDeliveryTo(aNewTarget);
+        MOZ_ASSERT(NS_SUCCEEDED(rv), "can't retarget cache pump");
     }
     if (NS_SUCCEEDED(rv) && mTransactionPump) {
         retargetableTransactionPump = do_QueryObject(mTransactionPump);
