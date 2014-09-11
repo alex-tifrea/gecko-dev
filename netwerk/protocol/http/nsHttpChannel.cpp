@@ -5369,6 +5369,10 @@ nsHttpChannel::OnDataAvailable(nsIRequest *request, nsISupports *ctxt,
 
         if (NS_IsMainThread() || mRetargetableProgressSink) {
             OnStatusAndProgress(nullptr, transportStatus, progress, progressMax);
+            nsresult rv = ipc::BackgroundParent::DispatchToBackgroundThread(
+                    new OnStatusAndProgressAsyncEvent(this, transportStatus, progress, progressMax),
+                    nsIEventTarget::DISPATCH_NORMAL);
+            NS_ENSURE_SUCCESS(rv, rv);
         } else {
             nsresult rv = NS_DispatchToMainThread(
                 new OnStatusAndProgressAsyncEvent(this, transportStatus,
@@ -5441,8 +5445,7 @@ nsHttpChannel::RetargetDeliveryTo(nsIEventTarget* aNewTarget)
         NS_WARNING("Retargeting delivery to same thread");
         return NS_OK;
     }
-//     NS_ENSURE_TRUE(mTransactionPump || mCachePump, NS_ERROR_NOT_AVAILABLE);
-    MOZ_ASSERT(mTransactionPump || mCachePump, "SHOULD NOT BE LIKE THIS");
+    NS_ENSURE_TRUE(mTransactionPump || mCachePump, NS_ERROR_NOT_AVAILABLE);
 
     nsresult rv = NS_OK;
     // If both cache pump and transaction pump exist, we're probably dealing
@@ -5513,10 +5516,9 @@ nsHttpChannel::OnTransportStatus(nsITransport *trans, nsresult status,
     if (!mRetargetableProgressSink) {
         OnStatusAndProgress(nullptr, status, progress, progressMax);
     } else {
-        nsresult rv = ipc::BackgroundParent::DispatchToBackgroundThread(new OnStatusAndProgressAsyncEvent(this,
-                                                                                   status,
-                                                                                   progress, progressMax),
-                                                 nsIEventTarget::DISPATCH_NORMAL);
+        nsresult rv = ipc::BackgroundParent::DispatchToBackgroundThread(
+                new OnStatusAndProgressAsyncEvent(this, status, progress, progressMax),
+                nsIEventTarget::DISPATCH_NORMAL);
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
