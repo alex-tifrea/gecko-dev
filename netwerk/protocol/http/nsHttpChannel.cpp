@@ -821,6 +821,15 @@ nsHttpChannel::SetupTransaction()
 
     rv = nsInputStreamPump::Create(getter_AddRefs(mTransactionPump),
                                    responseStream);
+
+    if (!NS_SUCCEEDED(rv)) {
+        printf("\n\n\nDAMN..WE FAIL HERE with error code %d!!!\n\n\n", rv);
+        return rv;
+    }
+
+    if (!mTransactionPump)
+        printf("\n\n\nmTransactionPump IS _NULL_ HERE \n\n\n");
+
     return rv;
 }
 
@@ -5445,6 +5454,14 @@ nsHttpChannel::RetargetDeliveryTo(nsIEventTarget* aNewTarget)
         NS_WARNING("Retargeting delivery to same thread");
         return NS_OK;
     }
+
+    // Do not retarget if the OnStart request comes from an `nsUnknownDecoder`.
+    // `nsUnknownDecoder::FireListenerNotification` sets mIsPending to false so
+    // we know for sure that it is the caller.
+    if (!mIsPending) {
+        return NS_OK;
+    }
+
     NS_ENSURE_TRUE(mTransactionPump || mCachePump, NS_ERROR_NOT_AVAILABLE);
 
     nsresult rv = NS_OK;

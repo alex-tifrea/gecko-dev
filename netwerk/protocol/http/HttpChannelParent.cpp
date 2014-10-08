@@ -38,6 +38,8 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/ipc/BackgroundParent.h"
 
+#include "nsThreadUtils.h"
+
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
 
@@ -798,6 +800,52 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
 }
 
 //-----------------------------------------------------------------------------
+// Helper class for sending the `OnDataAvailable` messages when we use
+// `nsUnknownDecoder`.
+//-----------------------------------------------------------------------------
+
+// class OnDataAvailableEvent : public nsRunnable
+// {
+// public:
+//   OnDataAvailableEvent(HttpChannelParent *aChannel,
+//                        const nsIRequest *aRequest,
+//                        const nsISupports *aContext,
+//                        const nsIInputStream *aInputStream,
+//                        const uint64_t aOffset,
+//                        const uint32_t aCount)
+//     : mChannel(aChannel)
+//     , mOffset(aOffset)
+//     , mCount(aCount)
+//   {
+// // TODO:    MOZ_ASSERT(IsOnMainThread());
+//     mRequest = aRequest)
+//     mContext = aContext;
+//     mInputStream = aInputStream;
+//   }
+// 
+//   NS_IMETHOD Run()
+//   {
+//     MOZ_ASSERT(IsOnBackgroundThread());
+// 
+//     mChannel->OnDataAvailable(mRequest.get(),
+//                               mContext.get(),
+//                               mInputStream.get(),
+//                               mOffset,
+//                               mCount);
+// 
+//     return NS_OK;
+//   }
+// 
+// private:
+//   HttpChannelParent *mChannel;
+//   nsCOMPtr<nsIRequest> mRequest;
+//   nsCOMPtr<nsISupports> mContext;
+//   nsCOMPtr<nsIInputStream> mInputStream;
+//   uint64_t mOffset;
+//   uint32_t mCount;
+// };
+
+//-----------------------------------------------------------------------------
 // HttpChannelParent::nsIStreamListener
 //-----------------------------------------------------------------------------
 
@@ -808,7 +856,25 @@ HttpChannelParent::OnDataAvailable(nsIRequest *aRequest,
                                    uint64_t aOffset,
                                    uint32_t aCount)
 {
-  MOZ_ASSERT(IsOnBackgroundThread(), "Should be on the background thread when receiving OnProgress.");
+  // The only scenario when this is allowed to happen is when we call
+  // OnDataAvailable from an `nsUnknownDecoder`, in which case we skip
+  // retargeting.
+  // TODO: make this work
+//   if (!IsOnBackgroundThread()) {
+//     nsIThread* backgroundThread = mHttpBackgroundChannel->
+//       GetBackgroundThread();
+//     MOZ_ASSERT(backgroundThread, "Failed to get background thread.");
+// 
+//     //TODO: this has to be NS_NewRunnableMethodWithArg and do the changes
+//     nsRefPtr<nsRunnable> event = new
+//       OnDataAvailableEvent(this, aRequest, aContext, aInputStream, aOffset, aCount);
+// 
+//     backgroundThread->Dispatch(event, NS_DISPATCH_NORMAL);
+//     return NS_OK;
+//   }
+
+  // TODO: uncomment this
+//   MOZ_ASSERT(IsOnBackgroundThread(), "Should be on the background thread when receiving OnProgress.");
   LOG(("HttpChannelParent::OnDataAvailable [this=%p]\n", this));
 
   MOZ_RELEASE_ASSERT(!mDivertingFromChild,
