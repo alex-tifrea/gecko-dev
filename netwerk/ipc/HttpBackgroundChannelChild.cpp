@@ -39,7 +39,8 @@ private:
     {
         MOZ_ASSERT(aActor, "Failed to create a PBackgroundChild actor!");
 
-        aActor->SendPHttpBackgroundChannelConstructor(mHttpBackgroundChild->GetChannelId());
+        aActor->SendPHttpBackgroundChannelConstructor(mHttpBackgroundChild,
+                                                      mHttpBackgroundChild->GetChannelId());
     }
 
     virtual void
