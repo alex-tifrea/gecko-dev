@@ -127,8 +127,10 @@ class CallOnStopRequestRunnable : public nsRunnable
 {
 public:
   CallOnStopRequestRunnable(PHttpBackgroundChannelParent* aHttpBackgroundChannelParent,
-                            const nsresult& aStatusCode)
+                            const nsresult& aStatusCode,
+                            const mozilla::net::ResourceTimingStruct& timing)
     : mStatusCode(aStatusCode)
+    , mTiming(timing)
   {
     AssertIsOnMainThread();
     mHttpBackgroundChannelParent =
@@ -143,13 +145,14 @@ public:
       return NS_ERROR_UNEXPECTED;
     }
 
-    unused << mHttpBackgroundChannelParent->SendOnStopRequestBackground(mStatusCode);
+    unused << mHttpBackgroundChannelParent->SendOnStopRequestBackground(mStatusCode, mTiming);
 
     return NS_OK;
   }
 
 private:
   const nsresult mStatusCode;
+  const mozilla::net::ResourceTimingStruct mTiming;
   nsRefPtr<HttpBackgroundChannelParent> mHttpBackgroundChannelParent;
 };
 
@@ -314,10 +317,11 @@ HttpBackgroundChannelParent::ProcessOnStartRequestBackground(const nsresult& cha
 }
 
 bool
-HttpBackgroundChannelParent::ProcessOnStopRequest(const nsresult& aStatusCode)
+HttpBackgroundChannelParent::ProcessOnStopRequest(const nsresult& aStatusCode,
+                                                  const ResourceTimingStruct& timing)
 {
   nsRefPtr<CallOnStopRequestRunnable> runnable =
-    new CallOnStopRequestRunnable(this, aStatusCode);
+    new CallOnStopRequestRunnable(this, aStatusCode, timing);
   mBackgroundThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
   return true;
 }

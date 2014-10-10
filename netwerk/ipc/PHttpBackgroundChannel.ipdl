@@ -9,6 +9,7 @@ include protocol PBackground;
 using class mozilla::net::nsHttpHeaderArray from "mozilla/net/PHttpChannelParent.h";
 using class mozilla::net::nsHttpResponseHead from "mozilla/net/PHttpChannelParent.h";
 using mozilla::net::NetAddr from "mozilla/net/DNS.h";
+using mozilla::net::ResourceTimingStruct from "mozilla/net/TimingStruct.h";
 
 namespace mozilla {
 namespace net {
@@ -40,7 +41,8 @@ child:
   OnProgressBackground(uint64_t   aProgress,
                        uint64_t   aProgressMax);
   OnStatusBackground(nsresult aStatus);
-  OnStopRequestBackground(nsresult aStatusCode);
+  OnStopRequestBackground(nsresult aStatusCode,
+                          ResourceTimingStruct timing);
 parent:
   __delete__();
 };

@@ -9,6 +9,7 @@
 #define _HttpBackgroundChannelChild_h
 
 #include "mozilla/net/PHttpBackgroundChannelChild.h"
+#include "mozilla/net/TimingStruct.h"
 
 namespace mozilla {
 namespace net {
@@ -55,7 +56,8 @@ public:
 
   virtual bool RecvOnStatusBackground(const nsresult& aStatus) MOZ_OVERRIDE;
 
-  virtual bool RecvOnStopRequestBackground(const nsresult& aStatusCode) MOZ_OVERRIDE;
+  virtual bool RecvOnStopRequestBackground(const nsresult& aStatusCode,
+                                           const ResourceTimingStruct& timing) MOZ_OVERRIDE;
 
   // Called to link the `HttpBackgroundChannelChild` to the new
   // `HttpChannelChild` after redirecting.

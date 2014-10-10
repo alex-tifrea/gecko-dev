@@ -4087,35 +4087,6 @@ ContentParent::NotifyUpdatedDictionaries()
     }
 }
 
-ContentParent::AddHttpBackgroundChannel(uint32_t aKey,
-                                      PHttpBackgroundChannelParent* aData)
-{
-  mHttpBackgroundChannels.Put(aKey, aData);
-}
-
-PHttpBackgroundChannelParent*
-ContentParent::GetHttpBackgroundChannel(uint32_t aKey)
-{
-  PHttpBackgroundChannelParent* ret = mHttpBackgroundChannels.Get(aKey);
-  mHttpBackgroundChannels.Remove(aKey);
-  return ret;
-}
-
-void
-ContentParent::AddHttpChannel(uint32_t aKey,
-                              PHttpChannelParent* aData)
-{
-  mHttpChannels.Put(aKey, aData);
-}
-
-PHttpChannelParent*
-ContentParent::GetHttpChannel(uint32_t aKey)
-{
-  PHttpChannelParent* ret = mHttpChannels.Get(aKey);
-  mHttpChannels.Remove(aKey);
-  return ret;
-}
-
 } // namespace dom
 } // namespace mozilla
 

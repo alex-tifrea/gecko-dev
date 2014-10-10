@@ -14,6 +14,7 @@
 #include "nsHashKeys.h"
 #include "nsIObserver.h"
 #include "nsTHashtable.h"
+#include "mozilla/net/PHttpBackgroundChannelChild.h"
 
 #include "nsWeakPtr.h"
 
@@ -404,7 +405,7 @@ private:
     InfallibleTArray<nsString> mAvailableDictionaries;
 
     nsDataHashtable<nsUint32HashKey,
-                    mozilla::net::PHttpRetargetChannelChild*> mHttpRetargetChannels;
+                    mozilla::net::PHttpBackgroundChannelChild*> mHttpBackgroundChannels;
 
     /**
      * An ID unique to the process containing our corresponding

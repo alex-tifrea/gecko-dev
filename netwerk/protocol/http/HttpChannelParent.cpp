@@ -188,7 +188,7 @@ HttpChannelParent::StartAsyncOpen( const URIParams&           aURI,
                                    const OptionalURIParams&   aDocURI,
                                    const OptionalURIParams&   aReferrerURI,
                                    const OptionalURIParams&   aAPIRedirectToURI,
-                                   const uint32_t&            loadFlags,
+                                   const uint32_t&            aLoadFlags,
                                    const RequestHeaderTuples& requestHeaders,
                                    const nsCString&           requestMethod,
                                    const OptionalInputStreamParams& uploadStream,
@@ -792,7 +792,7 @@ HttpChannelParent::OnStopRequest(nsIRequest *aRequest,
 
   // Send the message to the child via `HttpBackgroundChannel`.
   if (!mHttpBackgroundChannel->
-        ProcessOnStopRequest(aStatusCode)) {
+        ProcessOnStopRequest(aStatusCode, timing)) {
     return NS_ERROR_UNEXPECTED;
   }
 

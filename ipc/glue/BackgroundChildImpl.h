@@ -71,8 +71,6 @@ protected:
   virtual bool
   DeallocPFileDescriptorSetChild(PFileDescriptorSetChild* aActor) MOZ_OVERRIDE;
 
-  virtual PHttpRetargetChannelChild*
-
   virtual mozilla::net::PHttpBackgroundChannelChild*
   AllocPHttpBackgroundChannelChild(const uint32_t& aChannelId) MOZ_OVERRIDE;
 

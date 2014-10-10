@@ -39,8 +39,7 @@ private:
     {
         MOZ_ASSERT(aActor, "Failed to create a PBackgroundChild actor!");
 
-        aActor->SendPHttpBackgroundChannelConstructor(mHttpBackgroundChild,
-                                                      mHttpBackgroundChild->GetChannelId());
+        aActor->SendPHttpBackgroundChannelConstructor(mHttpBackgroundChild->GetChannelId());
     }
 
     virtual void
@@ -107,17 +106,17 @@ HttpBackgroundChannelChild::Init(PHttpChannelChild* aHttpChannel)
 
 bool
 HttpBackgroundChannelChild::RecvOnStartRequestBackground(const nsresult& channelStatus,
-                                                       const nsHttpResponseHead& responseHead,
-                                                       const bool& useResponseHead,
-                                                       const nsHttpHeaderArray& requestHeaders,
-                                                       const bool& isFromCache,
-                                                       const bool& cacheEntryAvailable,
-                                                       const uint32_t& cacheExpirationTime,
-                                                       const nsCString& cachedCharset,
-                                                       const nsCString& securityInfoSerialization,
-                                                       const NetAddr& selfAddr,
-                                                       const NetAddr& peerAddr,
-                                                       const int16_t& redirectCount)
+                                                         const nsHttpResponseHead& responseHead,
+                                                         const bool& useResponseHead,
+                                                         const nsHttpHeaderArray& requestHeaders,
+                                                         const bool& isFromCache,
+                                                         const bool& cacheEntryAvailable,
+                                                         const uint32_t& cacheExpirationTime,
+                                                         const nsCString& cachedCharset,
+                                                         const nsCString& securityInfoSerialization,
+                                                         const NetAddr& selfAddr,
+                                                         const NetAddr& peerAddr,
+                                                         const int16_t& redirectCount)
 {
   LOG(("HttpBackgroundChannelChild::OnStartRequest [this=%p channelId=%d]\n",this,mChannelId));
   MOZ_ASSERT(NS_IsMainThread(), "Must run on main thread!");
@@ -131,12 +130,12 @@ HttpBackgroundChannelChild::RecvOnStartRequestBackground(const nsresult& channel
 
 bool
 HttpBackgroundChannelChild::RecvOnTransportAndDataBackground(const nsresult& aChannelStatus,
-                                                           const nsresult& aTransportStatus,
-                                                           const uint64_t& aProgress,
-                                                           const uint64_t& aProgressMax,
-                                                           const nsCString& aData,
-                                                           const uint64_t& aOffset,
-                                                           const uint32_t& aCount)
+                                                             const nsresult& aTransportStatus,
+                                                             const uint64_t& aProgress,
+                                                             const uint64_t& aProgressMax,
+                                                             const nsCString& aData,
+                                                             const uint64_t& aOffset,
+                                                             const uint32_t& aCount)
 {
   LOG(("HttpBackgroundChannelChild::OnTransportAndData [this=%p channelId=%d]\n",this,mChannelId));
   MOZ_ASSERT(NS_IsMainThread(), "Must run on main thread!");
@@ -166,11 +165,12 @@ HttpBackgroundChannelChild::RecvOnStatusBackground(const nsresult& aStatus)
 }
 
 bool
-HttpBackgroundChannelChild::RecvOnStopRequestBackground(const nsresult& aStatusCode)
+HttpBackgroundChannelChild::RecvOnStopRequestBackground(const nsresult& aStatusCode,
+                                                        const ResourceTimingStruct& timing)
 {
   LOG(("HttpBackgroundChannelChild::OnStopRequest [this=%p channelId=%d]\n",this,mChannelId));
   MOZ_ASSERT(NS_IsMainThread(), "Must run on main thread!");
-  static_cast<HttpChannelChild*>(mHttpChannel)->OnStopRequest(aStatusCode);
+  static_cast<HttpChannelChild*>(mHttpChannel)->OnStopRequest(aStatusCode, timing);
   return true;
 }
 

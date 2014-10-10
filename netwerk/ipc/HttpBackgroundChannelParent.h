@@ -9,6 +9,7 @@
 #define _HttpBackgroundChannelParent_h
 
 #include "mozilla/net/PHttpBackgroundChannelParent.h"
+#include "mozilla/net/TimingStruct.h"
 
 namespace mozilla {
 namespace net {
@@ -42,7 +43,8 @@ public:
                                                const NetAddr& peerAddr,
                                                const int16_t& redirectCount);
 
-  bool ProcessOnStopRequest(const nsresult& aStatusCode);
+  bool ProcessOnStopRequest(const nsresult& aStatusCode,
+                            const ResourceTimingStruct& timing);
 
   // Called to link the `HttpBackgroundChannelParent` to the new
   // `HttpChannelParent` after redirecting.

@@ -12,7 +12,6 @@ include DOMTypes;
 using struct mozilla::void_t
   from "ipc/IPCMessageUtils.h";
 
-include protocol PBackgroundTest;
 include protocol PHttpBackgroundChannel;
 
 namespace mozilla {
